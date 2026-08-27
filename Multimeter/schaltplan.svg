@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="650" viewBox="0 0 1100 650">
+  <style>
+    text{font-family:Arial,sans-serif;fill:#17202a} .title{font-size:30px;font-weight:bold}
+    .label{font-size:18px} .small{font-size:15px} .box{fill:#f8f9f9;stroke:#34495e;stroke-width:3}
+    .wire{fill:none;stroke-width:4} .power{stroke:#c0392b}.ground{stroke:#17202a}
+    .signal{stroke:#2471a3}.pin{font-size:16px;font-weight:bold}
+  </style>
+  <rect width="1100" height="650" fill="#fff"/>
+  <text x="550" y="45" text-anchor="middle" class="title">Arduino Nano – OLED – Drehencoder</text>
+  <rect x="420" y="110" width="270" height="430" rx="18" class="box"/>
+  <text x="555" y="150" text-anchor="middle" class="title">Arduino Nano</text>
+  <text x="445" y="210" class="pin">5V</text><text x="445" y="260" class="pin">GND</text>
+  <text x="445" y="330" class="pin">D2</text><text x="445" y="380" class="pin">D3</text><text x="445" y="430" class="pin">D4</text>
+  <text x="650" y="330" text-anchor="end" class="pin">A4 / SDA</text><text x="650" y="380" text-anchor="end" class="pin">A5 / SCL</text>
+  <rect x="785" y="225" width="245" height="235" rx="15" class="box"/>
+  <text x="907" y="265" text-anchor="middle" class="title">OLED I²C</text>
+  <text x="810" y="315" class="pin">VCC</text><text x="810" y="355" class="pin">GND</text>
+  <text x="810" y="395" class="pin">SDA</text><text x="810" y="435" class="pin">SCL</text>
+  <rect x="60" y="245" width="260" height="245" rx="15" class="box"/>
+  <text x="190" y="285" text-anchor="middle" class="title">Drehencoder</text>
+  <text x="285" y="330" text-anchor="end" class="pin">+ / VCC</text><text x="285" y="365" text-anchor="end" class="pin">GND</text>
+  <text x="285" y="405" text-anchor="end" class="pin">CLK / A</text><text x="285" y="445" text-anchor="end" class="pin">DT / B</text><text x="285" y="480" text-anchor="end" class="pin">SW</text>
+  <path d="M420 205 H370 V185 H740 V310 H785" class="wire power"/>
+  <path d="M320 325 H370 V205" class="wire power"/>
+  <path d="M420 255 H350 V365 H320" class="wire ground"/>
+  <path d="M350 255 V570 H750 V350 H785" class="wire ground"/>
+  <path d="M320 400 H420" class="wire signal"/><path d="M320 440 H365 V375 H420" class="wire signal"/>
+  <path d="M320 475 H385 V425 H420" class="wire signal"/>
+  <path d="M690 325 H735 V390 H785" class="wire signal"/><path d="M690 375 H755 V430 H785" class="wire signal"/>
+  <text x="550" y="610" text-anchor="middle" class="label">Alle GND-Anschlüsse verbinden. OLED-Versorgung laut Modulbeschriftung prüfen.</text>
+</svg>
