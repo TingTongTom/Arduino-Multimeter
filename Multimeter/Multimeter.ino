@@ -12,6 +12,18 @@ constexpr int8_t OLED_RESET = -1;
 constexpr uint8_t ENCODER_A_PIN = 2;
 constexpr uint8_t ENCODER_B_PIN = 3;
 constexpr uint8_t ENCODER_BUTTON_PIN = 4;
+constexpr uint8_t VOLTAGE_INPUT_PIN = A0;
+
+// Voltmeter: R1 von VIN+ zum Teilerknoten, R2 vom Teilerknoten nach GND.
+// Diese beiden Werte koennen bei Bedarf durch gemessene Widerstandswerte
+// ersetzt werden. ADC_REFERENCE_VOLTAGE mit einem Multimeter an 5V kalibrieren.
+constexpr float DIVIDER_R1_OHM = 46840.0f;
+constexpr float DIVIDER_R2_OHM = 10000.0f;
+constexpr float ADC_REFERENCE_VOLTAGE = 4.320f;
+constexpr float VOLTAGE_CORRECTION_FACTOR = 1.000f;
+constexpr float MAX_INPUT_VOLTAGE = 25.0f;
+constexpr uint8_t VOLTAGE_SAMPLE_COUNT = 32;
+constexpr uint16_t VOLTAGE_UPDATE_MS = 200;
 
 Adafruit_SSD1306 display(OLED_WIDTH, OLED_HEIGHT, &Wire, OLED_RESET);
 
@@ -109,10 +121,57 @@ void drawDetail() {
   display.display();
 }
 
+float readInputVoltage() {
+  uint32_t adcSum = 0;
+  // Eine erste Wandlung verwerfen, damit der Sample-and-Hold-Kondensator nach
+  // einem moeglichen Kanalwechsel sicher auf A0 eingeschwungen ist.
+  analogRead(VOLTAGE_INPUT_PIN);
+  for (uint8_t i = 0; i < VOLTAGE_SAMPLE_COUNT; ++i) {
+    adcSum += analogRead(VOLTAGE_INPUT_PIN);
+  }
+
+  const float averageAdc = adcSum / static_cast<float>(VOLTAGE_SAMPLE_COUNT);
+  const float voltageAtA0 = averageAdc * ADC_REFERENCE_VOLTAGE / 1023.0f;
+  const float dividerFactor =
+      (DIVIDER_R1_OHM + DIVIDER_R2_OHM) / DIVIDER_R2_OHM;
+  return voltageAtA0 * dividerFactor * VOLTAGE_CORRECTION_FACTOR;
+}
+
+void drawVoltmeter() {
+  const float voltage = readInputVoltage();
+
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println(F("VOLTMETER DC"));
+  display.drawLine(0, 10, 127, 10, SSD1306_WHITE);
+
+  if (voltage > MAX_INPUT_VOLTAGE) {
+    display.setTextSize(2);
+    display.setCursor(4, 17);
+    display.println(F("WARNUNG!"));
+    display.setTextSize(1);
+    display.setCursor(7, 40);
+    display.println(F("> 25 V - trennen"));
+  } else {
+    display.setTextSize(2);
+    display.setCursor(12, 22);
+    display.print(voltage, 2);
+    display.println(F(" V"));
+  }
+
+  display.setTextSize(1);
+  display.setCursor(0, 55);
+  display.println(F("Druecken: zurueck"));
+  display.display();
+}
+
 void setup() {
   pinMode(ENCODER_A_PIN, INPUT_PULLUP);
   pinMode(ENCODER_B_PIN, INPUT_PULLUP);
   pinMode(ENCODER_BUTTON_PIN, INPUT_PULLUP);
+  pinMode(VOLTAGE_INPUT_PIN, INPUT);
 
   previousEncoderState =
       (digitalRead(ENCODER_A_PIN) << 1) | digitalRead(ENCODER_B_PIN);
@@ -137,6 +196,7 @@ void setup() {
 
 void loop() {
   static int16_t accumulatedSteps = 0;
+  static uint32_t lastVoltageUpdateMs = 0;
   bool redraw = false;
 
   noInterrupts();
@@ -166,7 +226,19 @@ void loop() {
     redraw = true;
   }
 
+  if (detailScreen && selectedItem == 0 &&
+      (millis() - lastVoltageUpdateMs >= VOLTAGE_UPDATE_MS)) {
+    lastVoltageUpdateMs = millis();
+    redraw = true;
+  }
+
   if (redraw) {
-    detailScreen ? drawDetail() : drawMenu();
+    if (!detailScreen) {
+      drawMenu();
+    } else if (selectedItem == 0) {
+      drawVoltmeter();
+    } else {
+      drawDetail();
+    }
   }
 }
