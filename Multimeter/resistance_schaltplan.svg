@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <style>
+    .wire{fill:none;stroke:#2471a3;stroke-width:4}.part{fill:#f8f9f9;stroke:#17202a;stroke-width:3}
+    .node{fill:#2471a3}.title{font:700 25px sans-serif;fill:#17202a}.label{font:20px sans-serif;fill:#17202a}
+    .small{font:16px sans-serif;fill:#34495e}.warn{font:700 17px sans-serif;fill:#a93226}
+  </style>
+  <rect width="1200" height="700" fill="white"/>
+  <text x="600" y="50" text-anchor="middle" class="title">Widerstandsmessung 100 Ω bis 1 MΩ – Arduino Nano</text>
+
+  <rect x="70" y="250" width="145" height="90" rx="12" class="part"/>
+  <text x="142" y="287" text-anchor="middle" class="title">Nano 5V</text>
+  <text x="142" y="318" text-anchor="middle" class="small">Messspeisung</text>
+
+  <path d="M215 295 H300" class="wire"/>
+  <rect x="300" y="260" width="180" height="70" rx="8" class="part"/>
+  <text x="390" y="288" text-anchor="middle" class="label">R_REF</text>
+  <text x="390" y="316" text-anchor="middle" class="label">10 kΩ</text>
+  <path d="M480 295 H590" class="wire"/>
+  <circle cx="590" cy="295" r="8" class="node"/>
+  <text x="590" y="258" text-anchor="middle" class="label">Messknoten RX+</text>
+
+  <path d="M590 295 V405" class="wire"/>
+  <rect x="515" y="405" width="150" height="80" rx="8" class="part"/>
+  <text x="590" y="437" text-anchor="middle" class="label">RX</text>
+  <text x="590" y="467" text-anchor="middle" class="small">100 Ω … 1 MΩ</text>
+  <path d="M590 485 V560 H490" class="wire"/>
+  <rect x="300" y="525" width="190" height="70" rx="12" class="part"/>
+  <text x="395" y="568" text-anchor="middle" class="title">Nano GND</text>
+
+  <path d="M590 295 H700" class="wire"/>
+  <rect x="700" y="260" width="170" height="70" rx="8" class="part"/>
+  <text x="785" y="288" text-anchor="middle" class="label">R_PROTECT</text>
+  <text x="785" y="316" text-anchor="middle" class="label">1 kΩ</text>
+  <path d="M870 295 H965" class="wire"/>
+  <rect x="965" y="250" width="165" height="90" rx="12" class="part"/>
+  <text x="1047" y="288" text-anchor="middle" class="title">Nano A1</text>
+  <text x="1047" y="318" text-anchor="middle" class="small">ADC-Eingang</text>
+
+  <path d="M920 295 V420" class="wire"/>
+  <rect x="855" y="420" width="130" height="70" rx="8" class="part"/>
+  <text x="920" y="449" text-anchor="middle" class="label">C1</text>
+  <text x="920" y="476" text-anchor="middle" class="small">100 nF optional</text>
+  <path d="M920 490 V560 H490" class="wire"/>
+
+  <text x="600" y="640" text-anchor="middle" class="warn">Nur spannungsfreie Widerstände messen – niemals Netzspannung anschließen</text>
+</svg>

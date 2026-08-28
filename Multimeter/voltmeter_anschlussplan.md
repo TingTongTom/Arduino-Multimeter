@@ -1,6 +1,6 @@
 # Voltmeter 0 bis 25 V DC
 
-Die Erweiterung misst ausschliesslich positive Gleichspac:\Users\Thomas\OneDrive\Dokumente\Arduino\Arduino Multimeter\Multimeter\voltmeter_schaltplan.svgnnungen. `VIN-` muss
+Die Erweiterung misst ausschliesslich positive Gleichspannungen. `VIN-` muss
 mit `GND` des Arduino Nano verbunden sein. Der bestehende Schaltplan
 `schaltplan.svg` bleibt unveraendert; die Voltmeter-Erweiterung ist in
 `voltmeter_schaltplan.svg` dargestellt.
@@ -9,7 +9,7 @@ mit `GND` des Arduino Nano verbunden sein. Der bestehende Schaltplan
 
 | Bezeichnung | Wert / Typ | Aufgabe |
 |---|---|---|
-| R1 | 47 kOhm, 1 %, mindestens 0,25 W | Oberer Widerstand des Spannungsteilers |
+| R1 | 56 kOhm, 1 %, mindestens 0,25 W | Oberer Widerstand des Spannungsteilers |
 | R2 | 10 kOhm, 1 %, mindestens 0,25 W | Unterer Widerstand des Spannungsteilers |
 | R3 | 1 kOhm | Begrenzt den Strom in A0 und die Schutzdioden |
 | C1 | 100 nF, Keramik | Filter von A0 nach GND |
@@ -34,7 +34,7 @@ mit `GND` des Arduino Nano verbunden sein. Der bestehende Schaltplan
 ## Verdrahtung
 
 ```text
-VIN+ --- R1 47k ---+--- R3 1k ---+--- A0
+VIN+ --- R1 56k ---+--- R3 1k ---+--- A0
                    |             |
                  R2 10k        C1 100nF
                    |             |
@@ -56,21 +56,22 @@ Ohne nennenswerte ADC-Eingangslast gilt:
 
 ```text
 U_A0 = U_IN * R2 / (R1 + R2)
-     = U_IN * 10 kOhm / (47 kOhm + 10 kOhm)
-     = U_IN / 5,7
+     = U_IN * 10 kOhm / (56 kOhm + 10 kOhm)
+     = U_IN / 6,6
 
-bei U_IN = 25 V: U_A0 = 25 V / 5,7 = 4,386 V
+bei U_IN = 25 V: U_A0 = 25 V / 6,6 = 3,788 V
 ```
 
 Der 1-kOhm-Schutzwiderstand R3 liegt nicht im belasteten Teilerpfad und
 veraendert den Gleichspannungs-Teilfaktor wegen des hochohmigen ADC-Eingangs
-praktisch nicht. Der theoretische Maximalwert vor Erreichen von 5 V an A0 ist
-28,5 V. Dieser Spielraum ist kein zulaessiger erweiterter Messbereich.
+praktisch nicht. Bei der aktuell gemessenen Referenzspannung von 4,320 V wird
+der ADC theoretisch erst bei etwa 28,51 V Eingangsspannung voll ausgesteuert.
+Dieser Spielraum ist kein zulaessiger erweiterter Messbereich.
 
 Der Sketch mittelt 32 ADC-Wandlungen. Aus dem ADC-Mittelwert wird gerechnet:
 
 ```text
-U_IN = ADC / 1023 * U_REF * 5,7 * Korrekturfaktor
+U_IN = ADC / 1023 * U_REF * 6,6 * Korrekturfaktor
 ```
 
 ## Kalibrierung
@@ -89,6 +90,9 @@ U_IN = ADC / 1023 * U_REF * 5,7 * Korrekturfaktor
 Die Warnanzeige erscheint fuer berechnete Messwerte ueber 25 V. Wegen
 Bauteiltoleranzen und Kalibrierung ist sie keine zertifizierte
 Ueberspannungsabschaltung.
+
+Bis D1 und D2 eingebaut sind, fehlen die externen Klemmdioden. In diesem
+Zwischenzustand nicht ueber 25 V testen und Verpolung unbedingt vermeiden.
 
 ## Sicherheit
 
