@@ -3,6 +3,7 @@
 #include <Adafruit_SSD1306.h>
 
 #include "config.h"
+#include "current_meter.h"
 #include "resistance.h"
 #include "voltmeter.h"
 
@@ -15,6 +16,7 @@ const char *const menuItems[] = {
   "Voltmeter",
   "Kapazitaet",
   "Widerstand",
+  "Strom",
   "Frequenz",
   "Einstellungen"
 };
@@ -167,12 +169,67 @@ void drawResistance() {
   display.display();
 }
 
+void drawCurrent() {
+  const CurrentMeasurement measurement = readCurrent();
+
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println(F("STROM DC"));
+  display.drawLine(0, 10, 127, 10, SSD1306_WHITE);
+
+  if (measurement.status == CurrentStatus::AdcError) {
+    display.setTextSize(2);
+    display.setCursor(18, 20);
+    display.println(F("FEHLER"));
+    display.setTextSize(1);
+    display.setCursor(7, 43);
+    display.println(F("ADC unplausibel"));
+  } else if (measurement.status == CurrentStatus::OutOfRange) {
+    display.setTextSize(2);
+    display.setCursor(4, 19);
+    display.println(F("AUSSERHALB"));
+    display.setTextSize(1);
+    display.setCursor(14, 43);
+    display.println(F("Messbereich 20 A"));
+  } else if (measurement.status == CurrentStatus::Warning) {
+    display.setTextSize(2);
+    display.setCursor(15, 17);
+    display.println(F("WARNUNG"));
+    display.setTextSize(1);
+    display.setCursor(20, 41);
+    display.println(F("sofort trennen"));
+  } else {
+    display.setTextSize(2);
+    display.setCursor(5, 17);
+    if (measurement.amperes >= 0.0f) display.print('+');
+    display.print(measurement.amperes, 1);
+    display.println(F(" A"));
+    display.setTextSize(1);
+    display.setCursor(0, 39);
+    display.println(measurement.amperes >= 0.0f
+                        ? F("Richtung: IP+ -> IP-")
+                        : F("Richtung: IP- -> IP+"));
+    if (measurement.status == CurrentStatus::HighLoad) {
+      display.setCursor(0, 49);
+      display.println(F("HINWEIS: hohe Last"));
+    }
+  }
+
+  display.setTextSize(1);
+  display.setCursor(0, 56);
+  display.println(F("Druecken: zurueck"));
+  display.display();
+}
+
 void setup() {
   pinMode(ENCODER_A_PIN, INPUT_PULLUP);
   pinMode(ENCODER_B_PIN, INPUT_PULLUP);
   pinMode(ENCODER_BUTTON_PIN, INPUT_PULLUP);
   pinMode(VOLTAGE_INPUT_PIN, INPUT);
   pinMode(RESISTANCE_INPUT_PIN, INPUT);
+  beginCurrentMeter();
 
   previousEncoderState =
       (digitalRead(ENCODER_A_PIN) << 1) | digitalRead(ENCODER_B_PIN);
@@ -199,6 +256,7 @@ void loop() {
   static int16_t accumulatedSteps = 0;
   static uint32_t lastVoltageUpdateMs = 0;
   static uint32_t lastResistanceUpdateMs = 0;
+  static uint32_t lastCurrentUpdateMs = 0;
   bool redraw = false;
 
   noInterrupts();
@@ -240,6 +298,12 @@ void loop() {
     redraw = true;
   }
 
+  if (detailScreen && selectedItem == 3 &&
+      (millis() - lastCurrentUpdateMs >= CURRENT_UPDATE_MS)) {
+    lastCurrentUpdateMs = millis();
+    redraw = true;
+  }
+
   if (redraw) {
     if (!detailScreen) {
       drawMenu();
@@ -247,6 +311,8 @@ void loop() {
       drawVoltmeter();
     } else if (selectedItem == 2) {
       drawResistance();
+    } else if (selectedItem == 3) {
+      drawCurrent();
     } else {
       drawDetail();
     }

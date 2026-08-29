@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="680" viewBox="0 0 1100 680">
+  <style>
+    text{font-family:Arial,sans-serif;fill:#17202a}.title{font-size:28px;font-weight:bold}.label{font-size:18px}.small{font-size:15px}.pin{font-size:17px;font-weight:bold}.box{fill:#f8f9f9;stroke:#34495e;stroke-width:3}.wire{fill:none;stroke-width:4}.power{stroke:#c0392b}.ground{stroke:#17202a}.signal{stroke:#2471a3}.current{stroke:#d35400;stroke-width:7}
+  </style>
+  <rect width="1100" height="680" fill="#fff"/>
+  <text x="550" y="42" text-anchor="middle" class="title">Bidirektionale Strommessung – ACS712-20A an A3</text>
+  <rect x="420" y="90" width="260" height="300" rx="16" class="box"/>
+  <text x="550" y="130" text-anchor="middle" class="title">ACS712-20A</text>
+  <text x="445" y="190" class="pin">VCC</text><text x="445" y="240" class="pin">GND</text><text x="445" y="290" class="pin">OUT</text>
+  <text x="650" y="190" text-anchor="end" class="pin">IP+</text><text x="650" y="290" text-anchor="end" class="pin">IP-</text>
+  <rect x="60" y="105" width="220" height="210" rx="15" class="box"/>
+  <text x="170" y="145" text-anchor="middle" class="title">Arduino Nano</text>
+  <text x="250" y="195" text-anchor="end" class="pin">5V</text><text x="250" y="245" text-anchor="end" class="pin">GND</text><text x="250" y="295" text-anchor="end" class="pin">A3</text>
+  <path d="M280 190 H420" class="wire power"/><path d="M280 240 H420" class="wire ground"/>
+  <path d="M420 285 H365" class="wire signal"/><rect x="315" y="270" width="50" height="30" class="box"/><text x="340" y="263" text-anchor="middle" class="small">1 kΩ</text><path d="M315 285 H280" class="wire signal"/>
+  <path d="M295 285 V350" class="wire signal"/><path d="M275 350 H315 M275 365 H315" class="wire signal"/><path d="M295 365 V410 H225" class="wire ground"/><text x="325" y="362" class="small">100 nF</text><text x="155" y="415" class="label">Nano GND</text>
+  <rect x="60" y="480" width="200" height="85" rx="12" class="box"/><text x="160" y="515" text-anchor="middle" class="label">DC-Quelle +</text><text x="160" y="545" text-anchor="middle" class="small">Kleinspannung</text>
+  <rect x="330" y="490" width="150" height="65" rx="10" class="box"/><text x="405" y="530" text-anchor="middle" class="label">Sicherung</text>
+  <rect x="825" y="480" width="210" height="85" rx="12" class="box"/><text x="930" y="530" text-anchor="middle" class="title">Last</text>
+  <path d="M260 520 H330 M480 520 H725 V190 H680" class="wire current"/>
+  <path d="M680 290 H760 V520 H825" class="wire current"/>
+  <path d="M1035 520 V620 H160 V565" class="wire current"/>
+  <text x="545" y="500" class="label">positive Stromrichtung →</text>
+  <text x="550" y="655" text-anchor="middle" class="label">Softwarewarnung und OLED ersetzen niemals die Sicherung.</text>
+</svg>

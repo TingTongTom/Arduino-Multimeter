@@ -39,3 +39,29 @@ constexpr float MAX_RESISTANCE_OHM = 1000000.0f;
 constexpr uint16_t RESISTANCE_OPEN_ADC_THRESHOLD = 1018;
 constexpr uint8_t RESISTANCE_SAMPLE_COUNT = 32;
 constexpr uint16_t RESISTANCE_UPDATE_MS = 200;
+
+// Strommessung: ACS712-20A an A3. Der Sensor liefert bei 0 A etwa die halbe
+// Versorgungsspannung; das Vorzeichen ergibt sich aus der Stromrichtung.
+constexpr uint8_t CURRENT_INPUT_PIN = A3;
+constexpr float CURRENT_SENSITIVITY_V_PER_A = 0.100f;
+constexpr float CURRENT_ZERO_VOLTAGE = 2.160f;
+constexpr float CURRENT_CORRECTION_FACTOR = 1.000f;
+constexpr uint8_t CURRENT_SAMPLE_COUNT = 64;
+constexpr uint16_t CURRENT_UPDATE_MS = 200;
+
+// Nur auf true setzen, wenn beim Einschalten hardwareseitig garantiert kein
+// Strom durch den ACS712 fliesst. Andernfalls gilt CURRENT_ZERO_VOLTAGE.
+constexpr bool CURRENT_AUTO_ZERO_AT_START = false;
+constexpr bool CURRENT_ZERO_CURRENT_GUARANTEED = false;
+constexpr uint8_t CURRENT_ZERO_SAMPLE_COUNT = 64;
+
+constexpr float CURRENT_MAX_ABS_A = 20.0f;
+constexpr float CURRENT_HIGH_THRESHOLD_A = 16.0f;
+constexpr float CURRENT_HIGH_CLEAR_A = 15.5f;
+constexpr float CURRENT_WARNING_THRESHOLD_A = 19.5f;
+constexpr float CURRENT_WARNING_CLEAR_A = 19.0f;
+
+// Werte nahe den Versorgungsschienen sind fuer das 20-A-Modul unplausibel
+// und deuten auf Unterbrechung, Kurzschluss oder falsche Verdrahtung hin.
+constexpr uint16_t CURRENT_PLAUSIBLE_ADC_MIN = 5;
+constexpr uint16_t CURRENT_PLAUSIBLE_ADC_MAX = 1018;

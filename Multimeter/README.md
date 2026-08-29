@@ -1,9 +1,8 @@
 # Multimeter
 
-Diese Grundschaltung stellt ein bedienbares Menue fuer ein spaeteres
-Multimessgeraet bereit. Mit den drei angegebenen Baugruppen allein werden noch
-keine elektrischen Groessen gemessen; dafuer sind jeweils geschuetzte
-Messschaltungen erforderlich.
+Das Projekt stellt ein bedienbares Multimeter mit Gleichspannungs-,
+Widerstands- und bidirektionaler Gleichstrommessung bereit. Die Strommessung
+nutzt ein ACS712-20A-Modul an A3.
 
 ## Anschlussplan
 
@@ -18,6 +17,8 @@ Messschaltungen erforderlich.
 | Drehencoder | CLK / A | D2 | Interrupt INT0 |
 | Drehencoder | DT / B | D3 | Interrupt INT1 |
 | Drehencoder | SW | D4 | Taster gegen GND, interner Pull-up aktiv |
+| ACS712-20A | VCC / GND | 5V / GND | Sensorversorgung |
+| ACS712-20A | OUT | ueber 1 kOhm an A3 | 100 nF von A3 nach GND |
 
 Bei einem nackten mechanischen Encoder wird der gemeinsame Kontakt an GND
 gelegt. A kommt an D2, B an D3 und der Taster zwischen D4 und GND. Die internen
@@ -43,7 +44,9 @@ Pull-up-Widerstaende des Nano werden vom Programm eingeschaltet.
    akzeptieren 3,3 bis 5 V, aber nicht jedes Modul ist gleich aufgebaut.
 ```
 
-Der grafische Plan liegt zusaetzlich in `schaltplan.svg`.
+Der grafische Grundplan liegt in `schaltplan.svg`. Die Messmodule sind in
+`voltmeter_anschlussplan.md`, `resistance_anschlussplan.md` und
+`current_meter_anschlussplan.md` samt jeweiligem SVG-Schaltplan dokumentiert.
 
 ## Benoetigte Arduino-Bibliotheken
 
@@ -73,3 +76,7 @@ werden D2 und D3 miteinander getauscht.
 Diese Grundschaltung ist keine geschuetzte Messeingangsschaltung. Niemals
 Netzspannung oder eine unbekannte Spannung an Nano-Pins, Encoder oder OLED
 anschliessen.
+
+Die Strommessung muss in Reihe und mit passend dimensionierter Sicherung,
+Buchsen und Leitungen aufgebaut werden. Die Softwarewarnung ersetzt niemals
+eine Sicherung.

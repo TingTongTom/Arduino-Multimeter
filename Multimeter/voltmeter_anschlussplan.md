@@ -13,7 +13,7 @@ mit `GND` des Arduino Nano verbunden sein. Der bestehende Schaltplan
 | R2 | 10 kOhm, 1 %, mindestens 0,25 W | Unterer Widerstand des Spannungsteilers |
 | R3 | 1 kOhm | Begrenzt den Strom in A0 und die Schutzdioden |
 | C1 | 100 nF, Keramik | Filter von A0 nach GND |
-| D1, D2 | 2 x BAT46, Kleinsignal-Schottky, DO-35 | Begrenzung von A0 gegen GND und 5 V |
+| D1, D2 | 2 x BAT43, Kleinsignal-Schottky, DO-35 | Begrenzung von A0 gegen GND und 5 V |
 | Eingang | Beruehrungssichere Buchsen fuer VIN+ und VIN- | Anschluss der Messspannung |
 
 ## Anschlusstabelle
@@ -45,10 +45,11 @@ Schutzdioden direkt an A0:
   D2: A0  --|>|-- 5V       (Anode an A0, Kathode an 5V)
 ```
 
-Bei der BAT46 kennzeichnet der Ring die Kathode. Fuer Breadboard und
-Lochraster werden zwei BAT46 empfohlen. Ihr niedriger Sperrstrom beeinflusst
+Bei der BAT43 kennzeichnet der Ring die Kathode. Fuer Breadboard und
+Lochraster werden zwei BAT43 empfohlen. Ihr niedriger Sperrstrom beeinflusst
 den hochohmigen Spannungsteiler weniger als Leistungs-Schottkydioden wie
-1N5817, 1N5818 oder 1N5819.
+1N5817, 1N5818 oder 1N5819. Die BAT46 ist ebenfalls geeignet, fuer diesen
+Klemmeingang aber nicht eindeutig besser.
 
 Auf einer spaeteren SMD-Platine kann eine BAT54S-Doppeldiode beide einzelnen
 Dioden ersetzen. Anschluss: Pin 1 an GND, Pin 3 an A0 und Pin 2 an 5 V. Vor der
