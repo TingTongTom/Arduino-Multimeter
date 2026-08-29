@@ -39,7 +39,10 @@ float getCurrentZeroVoltage() {
 CurrentMeasurement readCurrent() {
   if (!(CURRENT_AUTO_ZERO_AT_START && CURRENT_ZERO_CURRENT_GUARANTEED))
     zeroVoltage = calibrationValue(CalibrationField::CurrentZero);
-  const float averageAdc = readAverageAdc(CURRENT_SAMPLE_COUNT);
+  const uint8_t samples = settingValue(SettingField::Smoothing) == 0 ? 16 :
+                          settingValue(SettingField::Smoothing) == 2 ? 128 :
+                          CURRENT_SAMPLE_COUNT;
+  const float averageAdc = readAverageAdc(samples);
   if (averageAdc < CURRENT_PLAUSIBLE_ADC_MIN ||
       averageAdc > CURRENT_PLAUSIBLE_ADC_MAX) {
     return {0.0f, averageAdc, CurrentStatus::AdcError};

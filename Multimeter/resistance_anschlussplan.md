@@ -57,7 +57,8 @@ RX   = R_REF * N / (1023 - N)
 
 Da ADC-Referenz und Spannungsteiler dieselbe 5-V-Versorgung verwenden, kuerzt
 sich deren exakter Spannungswert aus der Formel heraus. Die Software verwirft
-nach einem Kanalwechsel die erste Wandlung und mittelt danach 32 Messungen.
+nach einem Kanalwechsel die erste Wandlung und mittelt danach je nach
+Daempfung 8 (`SCHNELL`), 32 (`NORMAL`) oder 64 (`RUHIG`) Messungen.
 
 ## Messbereich und Aufloesung
 
@@ -79,12 +80,18 @@ sie ist fuer die vorgegebenen Widerstaende nicht erforderlich.
 ## Kalibrierung
 
 1. R_REF spannungsfrei mit einem verlaesslichen Multimeter messen.
-2. Den Messwert in `config.h` als `RESISTANCE_REFERENCE_OHM` eintragen.
+2. Den Messwert in `config.h` als `RESISTANCE_REFERENCE_OHM` eintragen und neu
+   kompilieren; dieser reale Bauteilwert ist kein eigener EEPROM-Menuepunkt.
 3. Einen bekannten Widerstand nahe 10 kOhm anschliessen und die Anzeige pruefen.
-4. Falls noetig `RESISTANCE_CORRECTION_FACTOR` geringfuegig anpassen. Beispiel:
+4. Falls noetig unter `Widerst. Referenz` den bekannten Sollwert einstellen
+   und bei stabiler Anzeige mit langem Druck uebernehmen. Alternativ kann der
+   Werkwert `RESISTANCE_CORRECTION_FACTOR` angepasst werden. Beispiel:
    Sollwert 10,00 kOhm, Anzeige 9,90 kOhm: Faktor `10.00 / 9.90 = 1.0101`.
 5. Anschliessend mindestens einen niedrigen und einen hohen vorhandenen Wert
    kontrollieren.
+
+Der ueber das Menue bestimmte Korrekturfaktor wird im EEPROM gespeichert und
+hat zur Laufzeit Vorrang vor dem Werkwert aus `config.h`.
 
 ## Sicherheitshinweise
 

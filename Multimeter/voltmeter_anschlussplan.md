@@ -79,7 +79,9 @@ praktisch nicht. Bei der aktuell gemessenen Referenzspannung von 4,320 V wird
 der ADC theoretisch erst bei etwa 28,51 V Eingangsspannung voll ausgesteuert.
 Dieser Spielraum ist kein zulaessiger erweiterter Messbereich.
 
-Der Sketch mittelt 32 ADC-Wandlungen. Aus dem ADC-Mittelwert wird gerechnet:
+Der Sketch verwirft nach einem moeglichen Kanalwechsel die erste Wandlung und
+mittelt danach je nach Daempfung 8 (`SCHNELL`), 32 (`NORMAL`) oder 64
+(`RUHIG`) ADC-Wandlungen. Aus dem ADC-Mittelwert wird gerechnet:
 
 ```text
 U_IN = ADC / 1023 * U_REF * 6,6 * Korrekturfaktor
@@ -88,15 +90,21 @@ U_IN = ADC / 1023 * U_REF * 6,6 * Korrekturfaktor
 ## Kalibrierung
 
 1. Die Nano-5-V-Spannung mit einem verlaesslichen Multimeter zwischen `5V` und
-   `GND` messen und im Sketch als `ADC_REFERENCE_VOLTAGE` eintragen.
+   `GND` messen und unter `Einstellungen > ADC-Referenz` eintragen.
 2. Eine stabile, bekannte Gleichspannung (zweckmaessig 15 bis 20 V) anlegen.
-3. `VOLTAGE_CORRECTION_FACTOR` nach folgender Formel setzen:
+3. Unter `Spannung Referenz` den bekannten Sollwert einstellen und bei
+   stabiler Anzeige mit langem Druck uebernehmen. Die Firmware berechnet den
+   Korrekturfaktor nach folgender Formel:
 
    `Korrekturfaktor_neu = Korrekturfaktor_alt * Referenzwert / Anzeigewert`
 
 4. Bei mehreren Spannungen pruefen. Fuer beste Genauigkeit koennen ausserdem
    die real gemessenen Werte von R1 und R2 in `DIVIDER_R1_OHM` und
    `DIVIDER_R2_OHM` eingetragen werden.
+
+Die Menuekalibrierung wird mit CRC im EEPROM gespeichert. Die Konstanten
+`ADC_REFERENCE_VOLTAGE` und `VOLTAGE_CORRECTION_FACTOR` in `config.h` bleiben
+die Werkwerte fuer ein leeres, ungueltiges oder zurueckgesetztes EEPROM.
 
 Die Warnanzeige erscheint fuer berechnete Messwerte ueber 25 V. Wegen
 Bauteiltoleranzen und Kalibrierung ist sie keine zertifizierte

@@ -71,8 +71,14 @@ Der grafische Zusatzplan liegt in `frequency_meter_extended_schaltplan.svg`.
 
 Timer 1 misst auf D8/ICP1 die Zeit zwischen steigenden Flanken mit 62,5 ns
 Zaehlerauflösung. Der digitale Input-Capture-Noise-Canceler ist aktiv. Nach
-1,5 s ohne Flanke erscheint `KEIN SIGNAL`; Werte ausserhalb des spezifizierten
+1,5 s ohne Flanke erscheint `KEIN PULS`; Werte ausserhalb des spezifizierten
 Bereichs werden als Bereichsfehler angezeigt.
+
+Die Daempfung bestimmt die Periodenmittelung: `SCHNELL` verwendet eine,
+`NORMAL` vier und `RUHIG` acht Perioden. Das Aktualisierungsintervall bestimmt
+nur, wie oft die Anzeige neu gezeichnet wird; die Capture-Messung selbst laeuft
+interruptgesteuert weiter. D9 und D10 duerfen waehrend der Frequenzansicht
+nicht fuer PWM verwendet werden, weil Timer 1 exklusiv belegt ist.
 
 Zum Funktionstest einen massebezogenen Funktionsgenerator zuerst auf 1 kHz,
 0 V LOW und 5 V HIGH einstellen. Gemeinsame Masse verbinden, danach 1 Hz,

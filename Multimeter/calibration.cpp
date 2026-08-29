@@ -7,7 +7,7 @@
 
 namespace {
 constexpr uint16_t CALIBRATION_MAGIC = 0x4D4D;
-constexpr uint8_t CALIBRATION_VERSION = 1;
+constexpr uint8_t CALIBRATION_VERSION = 2;
 
 struct StoredCalibration {
   uint16_t magic;
@@ -19,10 +19,21 @@ struct StoredCalibration {
   float currentFactor;
   float capacitanceFineFactor;
   float capacitanceCoarseFactor;
+  uint8_t smoothing;
+  int8_t encoderDirection;
+  uint8_t encoderSteps;
+  uint16_t longPressMs;
+  uint8_t displayContrast;
+  uint16_t updateIntervalMs;
+  uint8_t decimalMode;
+  uint8_t displayTimeoutMin;
+  uint8_t keepHold;
+  uint8_t resetMinMax;
   uint16_t checksum;
 };
 
 StoredCalibration values;
+bool storageWasValid = false;
 
 uint16_t checksum(const StoredCalibration &data) {
   const uint8_t *bytes = reinterpret_cast<const uint8_t *>(&data);
@@ -46,7 +57,13 @@ bool plausible(const StoredCalibration &data) {
          data.currentZero >= 1.0f && data.currentZero <= 4.0f &&
          data.currentFactor >= 0.5f && data.currentFactor <= 1.5f &&
          data.capacitanceFineFactor >= 0.5f && data.capacitanceFineFactor <= 1.5f &&
-         data.capacitanceCoarseFactor >= 0.5f && data.capacitanceCoarseFactor <= 1.5f;
+         data.capacitanceCoarseFactor >= 0.5f && data.capacitanceCoarseFactor <= 1.5f &&
+         data.smoothing <= 2 && abs(data.encoderDirection) == 1 &&
+         (data.encoderSteps == 1 || data.encoderSteps == 2 || data.encoderSteps == 4) &&
+         data.longPressMs >= 300 && data.longPressMs <= 2000 &&
+         data.updateIntervalMs >= 100 && data.updateIntervalMs <= 1000 &&
+         data.decimalMode <= 2 && data.displayTimeoutMin <= 30 &&
+         data.keepHold <= 1 && data.resetMinMax <= 1;
 }
 
 void loadDefaults() {
@@ -59,13 +76,24 @@ void loadDefaults() {
   values.currentFactor = CURRENT_CORRECTION_FACTOR;
   values.capacitanceFineFactor = CAPACITANCE_FINE_CORRECTION_FACTOR;
   values.capacitanceCoarseFactor = CAPACITANCE_COARSE_CORRECTION_FACTOR;
+  values.smoothing = 1;
+  values.encoderDirection = 1;
+  values.encoderSteps = 4;
+  values.longPressMs = BUTTON_LONG_PRESS_MS;
+  values.displayContrast = 127;
+  values.updateIntervalMs = 200;
+  values.decimalMode = 1;
+  values.displayTimeoutMin = 0;
+  values.keepHold = 0;
+  values.resetMinMax = 1;
   values.checksum = checksum(values);
 }
 }
 
 void beginCalibration() {
   EEPROM.get(0, values);
-  if (!plausible(values)) loadDefaults();
+  storageWasValid = plausible(values);
+  if (!storageWasValid) loadDefaults();
 }
 
 float calibrationValue(CalibrationField field) {
@@ -97,6 +125,7 @@ void saveCalibration() {
   values.version = CALIBRATION_VERSION;
   values.checksum = checksum(values);
   EEPROM.put(0, values);
+  storageWasValid = true;
 }
 
 void resetCalibration() {
@@ -104,3 +133,35 @@ void resetCalibration() {
   saveCalibration();
 }
 
+int16_t settingValue(SettingField field) {
+  switch (field) {
+    case SettingField::Smoothing: return values.smoothing;
+    case SettingField::EncoderDirection: return values.encoderDirection;
+    case SettingField::EncoderSteps: return values.encoderSteps;
+    case SettingField::LongPressMs: return values.longPressMs;
+    case SettingField::DisplayContrast: return values.displayContrast;
+    case SettingField::UpdateIntervalMs: return values.updateIntervalMs;
+    case SettingField::DecimalMode: return values.decimalMode;
+    case SettingField::DisplayTimeoutMin: return values.displayTimeoutMin;
+    case SettingField::KeepHold: return values.keepHold;
+    default: return values.resetMinMax;
+  }
+}
+
+void setSettingValue(SettingField field, int16_t value) {
+  switch (field) {
+    case SettingField::Smoothing: values.smoothing = constrain(value, 0, 2); break;
+    case SettingField::EncoderDirection: values.encoderDirection = value < 0 ? -1 : 1; break;
+    case SettingField::EncoderSteps: values.encoderSteps = value <= 1 ? 1 : value <= 2 ? 2 : 4; break;
+    case SettingField::LongPressMs: values.longPressMs = constrain(value, 300, 2000); break;
+    case SettingField::DisplayContrast: values.displayContrast = constrain(value, 1, 255); break;
+    case SettingField::UpdateIntervalMs: values.updateIntervalMs = constrain(value, 100, 1000); break;
+    case SettingField::DecimalMode: values.decimalMode = constrain(value, 0, 2); break;
+    case SettingField::DisplayTimeoutMin: values.displayTimeoutMin = constrain(value, 0, 30); break;
+    case SettingField::KeepHold: values.keepHold = value != 0; break;
+    case SettingField::ResetMinMax: values.resetMinMax = value != 0; break;
+  }
+}
+
+bool calibrationStorageValid() { return storageWasValid; }
+uint8_t calibrationStorageVersion() { return CALIBRATION_VERSION; }

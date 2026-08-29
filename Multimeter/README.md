@@ -5,6 +5,25 @@ Kapazitaets-, Widerstands-, Frequenz- und bidirektionaler Gleichstrommessung
 bereit. Die Strommessung nutzt ein ACS712-20A-Modul an A3; die Frequenzmessung
 nutzt Timer 1 Input Capture an D8/ICP1.
 
+Zielplattform ist ausschliesslich der klassische Arduino Nano mit ATmega328P,
+5 V und 16 MHz. ESP32-Unterlagen gehoeren nicht zu diesem Repository. Das
+Geraet ist ein DIY-Kleinspannungsmessgeraet ohne CAT-Einstufung, galvanische
+Trennung oder Schutzbeschaltung fuer Netzspannung.
+
+## Funktionsumfang und Grenzen
+
+| Messart | Nennbereich | Eingang / Besonderheit |
+|---|---:|---|
+| Gleichspannung | 0 bis 25 V DC | A0, nur positive und massebezogene Spannung |
+| Widerstand | 100 Ohm bis 1 MOhm | A1, Pruefling spannungsfrei |
+| Kapazitaet | 100 nF bis 4700 uF | A2, automatische Entladung und Bereichswahl |
+| Gleichstrom | -20 A bis +20 A DC | A3, ACS712-20A, Strompfad in Reihe |
+| Frequenz x1 | 1 Hz bis 100 kHz | D8/ICP1, aufbereitetes 0-bis-5-V-Pulssignal |
+| Frequenz x16 | 16 Hz bis 1,6 MHz | optionaler 74HC4040-Vorteiler, D12 = LOW |
+
+Alle Messansichten bieten `LIVE`, `MIN`, `MAX`, `REL` und `HOLD`. Die
+Grenzwert-, Fehler- und Sicherheitsanzeigen bleiben dabei aktiv.
+
 ## Anschlussplan
 
 | Bauteil | Anschluss | Arduino Nano | Hinweis |
@@ -66,6 +85,10 @@ Im Bibliotheksverwalter der Arduino IDE installieren:
 
 `Wire` gehoert bereits zur Arduino-Installation.
 
+Die Firmware verwendet ausserdem die zum AVR-Core gehoerenden Bibliotheken
+`EEPROM`, `Arduino` und die AVR-Interruptdefinitionen; dafuer ist keine
+separate Installation im Bibliotheksverwalter erforderlich.
+
 ## Inbetriebnahme
 
 1. Schaltung bei ausgeschalteter Versorgung verdrahten.
@@ -79,24 +102,101 @@ Im Bibliotheksverwalter der Arduino IDE installieren:
    Die Kapazitaetsmessung startet beim Oeffnen automatisch mit einer sicheren
    Entladung.
    Die Frequenzmessung startet und stoppt mit ihrer Menueansicht.
-6. Unter `Einstellungen` wird mit Drehen ein Kalibrierwert ausgewaehlt. Ein
-   kurzer Druck startet die Bearbeitung, Drehen aendert den Wert und ein
-   weiterer kurzer Druck speichert ihn im EEPROM. `Werkwerte laden` stellt
-   die Vorgaben aus `config.h` wieder her. Ein langer Druck fuehrt zurueck.
+6. Unter `Einstellungen` wird mit Drehen ein Eintrag ausgewaehlt. Ein kurzer
+   Druck startet die Bearbeitung. Drehen aendert den Wert, ein kurzer Druck
+   wechselt zwischen feiner und grober Schrittweite und ein langer Druck
+   uebernimmt den Wert. Ein weiterer langer Druck fuehrt zum Hauptmenue.
 
 Beim Wechsel auf `REL` wird der aktuelle Messwert als Nullpunkt uebernommen.
-Minimum und Maximum werden beim erneuten Oeffnen einer Messansicht geloescht.
+Minimum und Maximum werden beim erneuten Oeffnen einer Messansicht
+standardmaessig geloescht.
 Die Warn- und Plausibilitaetsanzeigen bleiben auch bei den Zusatzfunktionen
 aktiv.
+
+In `MIN` oder `MAX` setzt ein kurzer Druck beide Extremwerte auf den aktuellen
+Messwert zurueck. Ob Extremwerte und Hold beim Verlassen erhalten bleiben,
+kann in den Einstellungen festgelegt werden.
+
+## Einstellungen
+
+Folgende Werte werden gemeinsam mit Versionskennung und CRC im EEPROM
+gespeichert:
+
+- ADC-Referenz und Korrekturfaktoren aller Messarten
+- Messwertdaempfung `SCHNELL`, `NORMAL` oder `RUHIG`
+- Encoderdrehrichtung und ein, zwei oder vier Zustandswechsel pro Rastung
+- Langdruckdauer, Displaykontrast und Aktualisierungsintervall
+- Anzahl der Nachkommastellen und automatische Displayabschaltung
+- Verhalten von Hold und Min/Max beim erneuten Oeffnen
+
+`Strom jetzt nullen` muss zweimal bestaetigt werden. Dabei darf garantiert
+kein Strom durch den ACS712 fliessen. Bei den Referenzkalibrierungen wird ein
+bekannter Sollwert eingestellt; langer Druck uebernimmt den aktuell gemessenen
+Istwert und berechnet daraus den Korrekturfaktor. Bei Kapazitaet muss vor dem
+Uebernehmen `Messung bereit` erscheinen. `Werkwerte laden` verlangt ebenfalls
+zwei kurze Tastendruecke.
+
+Die Hauptmenue-Seite `Diagnose` zeigt rohe ADC-Werte, freien SRAM, EEPROM-/CRC-
+Status, Firmwareversion und den erkannten Frequenzbereich.
+
+### Einstellbereiche und Werkwerte
+
+| Eintrag | Bereich / Auswahl | Werkwert |
+|---|---|---|
+| ADC-Referenz | 3,000 bis 5,500 V | 4,320 V |
+| Messkorrekturfaktoren | 0,500 bis 1,500 | 1,000 |
+| ACS712-Nullpunkt | 1,000 bis 4,000 V | 2,160 V |
+| Daempfung | `SCHNELL`, `NORMAL`, `RUHIG` | `NORMAL` |
+| Encoder-Richtung | normal / umgekehrt | normal |
+| Encoder-Schritte | 1, 2 oder 4 Zustandswechsel/Rastung | 4 |
+| Langdruck | 300 bis 2000 ms | 700 ms |
+| OLED-Kontrast | 1 bis 255 | 127 |
+| Aktualisierung | 100 bis 1000 ms | 200 ms |
+| Nachkommastellen | weniger / normal / mehr | normal |
+| Display aus | aus oder 1 bis 30 min | aus |
+| Hold behalten | ja / nein | nein |
+| Min/Max Neustart | ja / nein | ja |
+
+Ein kurzer Druck startet die Bearbeitung und wechselt danach zwischen feiner
+und grober Schrittweite. Erst ein langer Druck speichert den bearbeiteten Wert
+ins EEPROM. Bei ungueltiger Versionskennung, unplausiblen Daten oder falscher
+CRC verwendet die Firmware die Werkwerte aus `config.h`. `Werkwerte laden`
+schreibt diese Vorgaben nach der zweiten Bestaetigung wieder ins EEPROM.
+
+### Empfohlene Kalibrierreihenfolge
+
+1. Geraet und Messmodule auf Betriebstemperatur kommen lassen.
+2. Reale Nano-5-V-Spannung bestimmen und `ADC-Referenz` einstellen.
+3. Spannung und Widerstand mit stabilen, bekannten Referenzen kalibrieren.
+4. ACS712 bei garantiert 0 A mit `Strom jetzt nullen` nullen; danach den
+   Stromfaktor mit einem sicheren bekannten Strom bestimmen.
+5. Kapazitaetsfaktoren getrennt mit einem geeigneten kleinen Kondensator fuer
+   den Feinbereich und einem geeigneten grossen Kondensator fuer den
+   Grobbereich bestimmen. Nur bei `Messung bereit` uebernehmen.
+6. Jeden Messbereich anschliessend mit mindestens einem zweiten Referenzwert
+   kontrollieren. Kalibrierung verbessert keine konstruktiv begrenzte
+   Aufloesung und ersetzt keine Sicherheitspruefung.
 
 Die abschliessende Pinbelegung, Projektpruefung und gemeinsame
 Inbetriebnahme-Checkliste stehen in `PROJEKT_PRUEFUNG.md`.
 
-Bleibt das Display dunkel, ist seine I2C-Adresse eventuell `0x3D`. Dann im
-Sketch `OLED_ADDRESS` von `0x3C` auf `0x3D` aendern. Reagiert eine Rastung zu
-langsam oder doppelt, muss der Schwellwert `4` im Hauptprogramm passend zum
-Encoder auf `2` oder `1` geaendert werden. Sind Drehrichtungen vertauscht,
-werden D2 und D3 miteinander getauscht.
+## Fehlerbehebung
+
+- Bleibt das Display dunkel, Versorgung und I2C-Verdrahtung pruefen. Hat das
+  Modul die Adresse `0x3D`, `OLED_ADDRESS` in `config.h` von `0x3C` auf `0x3D`
+  aendern und neu kompilieren.
+- Reagiert der Encoder pro Rastung gar nicht, mehrfach oder in der falschen
+  Richtung, zuerst `Encoder Schritte` beziehungsweise `Encoder Richtung` im
+  Einstellungsmenue korrigieren. Ein Vertauschen von D2 und D3 ist nicht
+  erforderlich.
+- Zeigt die Diagnose `EEPROM ... Werkwerte`, waren die gespeicherten Daten
+  ungueltig oder nicht in Version 2 vorhanden. Werte neu kalibrieren und mit
+  langem Druck speichern.
+- Wacht ein abgeschaltetes OLED nicht auf, Encoder oder Taster betaetigen und
+  danach Versorgung sowie Displayverkabelung pruefen.
+- Bei unruhiger Anzeige `RUHIG` waehlen; dadurch steigen die ADC-Mittelungen
+  und bei Frequenz die Periodenmittelung. Stoerungen in Verdrahtung,
+  Massefuehrung und Versorgung muessen trotzdem hardwareseitig behoben werden.
 
 ## Sicherheit
 

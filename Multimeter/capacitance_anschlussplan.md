@@ -58,7 +58,11 @@ Die gemessenen Widerstandswerte werden in `config.h` als
 `CAPACITANCE_PROTECTION_OHM`, `CAPACITANCE_FINE_REFERENCE_OHM` und
 `CAPACITANCE_COARSE_REFERENCE_OHM` eingetragen. Mit bekannten Kondensatoren
 nahe 1 uF und 1000 uF lassen sich die beiden Korrekturfaktoren getrennt
-abgleichen. Elektrolytkondensatoren haben oft deutlich groessere Toleranzen;
+abgleichen. Dazu `Kap. fein Referenz` beziehungsweise `Kap. grob Referenz`
+waehlen, den bekannten Wert in uF einstellen, `Messung bereit` abwarten und
+mit langem Druck uebernehmen. Die Faktoren werden im EEPROM gespeichert; die
+Konstanten in `config.h` sind die Werkwerte. Elektrolytkondensatoren haben oft
+deutlich groessere Toleranzen;
 fuer die Kalibrierung sind enge Folien- oder Referenzkondensatoren besser.
 
 ## Sicherheitsgrenzen

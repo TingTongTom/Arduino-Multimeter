@@ -6,15 +6,18 @@
 
 ResistanceMeasurement readResistance() {
   uint32_t adcSum = 0;
+  const uint8_t samples = settingValue(SettingField::Smoothing) == 0 ? 8 :
+                          settingValue(SettingField::Smoothing) == 2 ? 64 :
+                          RESISTANCE_SAMPLE_COUNT;
 
   // Erste Wandlung nach einem moeglichen Kanalwechsel von A0 verwerfen.
   analogRead(RESISTANCE_INPUT_PIN);
-  for (uint8_t i = 0; i < RESISTANCE_SAMPLE_COUNT; ++i) {
+  for (uint8_t i = 0; i < samples; ++i) {
     adcSum += analogRead(RESISTANCE_INPUT_PIN);
   }
 
   const float averageAdc =
-      adcSum / static_cast<float>(RESISTANCE_SAMPLE_COUNT);
+      adcSum / static_cast<float>(samples);
 
   if (averageAdc >= RESISTANCE_OPEN_ADC_THRESHOLD) {
     return {0.0f, averageAdc, ResistanceStatus::Open};

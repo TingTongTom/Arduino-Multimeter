@@ -1,9 +1,9 @@
 # Bauteilliste fuer das gesamte Multimeter-Projekt
 
-Stand: Grundgeraet, Voltmeter und Widerstandsmessung sind geplant beziehungsweise
-teilweise umgesetzt. Ein AZ-Delivery ACS712-20A ist bereits vorhanden. Die
-Kapazitaetsmessung ist fuer 100 nF bis 4700 uF ausgelegt; die Frequenzmessung
-ist fuer 0 bis 5 V und 1 Hz bis 100 kHz umgesetzt.
+Stand: Grundgeraet sowie Spannungs-, Widerstands-, Strom-, Kapazitaets- und
+Frequenzmessung sind in der Firmware umgesetzt und dokumentiert. Ein
+AZ-Delivery ACS712-20A ist bereits vorhanden. Die optionale
+Frequenzbereichserweiterung mit 74HC4040 bleibt ein Hardware-Zusatz.
 
 ## Vorhandenes Bauteil
 
@@ -39,9 +39,10 @@ ist fuer 0 bis 5 V und 1 Hz bis 100 kHz umgesetzt.
 | 1 | Kunststoffgehaeuse | Mit Abdeckung des Hochstrompfads | Mechanischer Schutz |
 | 1 Satz | Abstandshalter und Schrauben | Passend zu Platinen und Gehaeuse | Montage |
 
-Die Mengen enthalten bereits die geplanten Erweiterungen. Fuer den aktuell
-implementierten Stand werden die mit "vorlaeufig" gekennzeichneten Teile noch
-nicht benoetigt.
+Die Mengen enthalten den vollstaendigen dokumentierten Aufbau einschliesslich
+der separat gekennzeichneten optionalen Erweiterungen. Vor der Bestellung
+Gehaeuseabmessungen, Buchsendurchmesser, reale Modulbauformen und die
+Strombelastbarkeit aller Hochstromteile am konkreten Aufbau pruefen.
 
 ## Grundschaltung
 
@@ -154,6 +155,10 @@ Werten bereitgehalten werden: 100 Ohm, 1 kOhm, 2,2 kOhm, 3,3 kOhm, 4,7 kOhm,
 Fuer den ACS712 werden eine einstellbare Kleinspannungsquelle, eine geeignete
 Last und ein verlaessliches Referenzmultimeter benoetigt. Diese Werkzeuge sind
 nicht Bestandteil des fertigen Geraets.
+
+Zusaetzlich empfohlen sind stabile Referenzkondensatoren fuer beide
+Kapazitaetsbereiche, ein massebezogener 0-bis-5-V-Funktionsgenerator fuer den
+Frequenzeingang und ein I2C-Adressscanner fuer die OLED-Inbetriebnahme.
 
 ## Sicherheit und Projektgrenzen
 

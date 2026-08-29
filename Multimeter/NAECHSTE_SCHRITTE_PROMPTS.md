@@ -1,8 +1,11 @@
-# Prompts fuer die naechsten Projektschritte
+# Entwicklungsarchiv: urspruengliche Projekt-Prompts
 
-Die Prompts sind in einer sinnvollen Reihenfolge angeordnet. Jeder Schritt
-soll auf dem vorhandenen Projektstand aufbauen und die bestehenden Funktionen
-fuer Spannung und Widerstand unveraendert erhalten.
+Diese Prompts dokumentieren die urspruengliche Ausbauplanung. Die Schritte 1
+bis 6 sind inzwischen umgesetzt und duerfen nicht mehr als offene Aufgaben
+oder aktuelle technische Spezifikation gelesen werden. Verbindlich fuer den
+heutigen Stand sind `README.md`, `PROJEKT_PRUEFUNG.md`, `config.h`, die
+modulspezifischen Anschlussplaene und der Quellcode. Abweichungen in diesem
+Archiv bleiben zur Nachvollziehbarkeit der Entwicklung erhalten.
 
 ## 1. Strommessung mit ACS712-20A implementieren
 

@@ -3,6 +3,7 @@
 
 #include "config.h"
 #include "frequency_meter.h"
+#include "calibration.h"
 
 namespace {
 volatile uint32_t timer1Overflows = 0;
@@ -11,7 +12,7 @@ volatile uint32_t periodTicks = 0;
 volatile uint8_t captureCount = 0;
 volatile uint32_t periodSum = 0;
 volatile uint8_t averagedPeriods = 0;
-constexpr uint8_t PERIOD_AVERAGE_COUNT = 4;
+volatile uint8_t periodAverageCount = 4;
 bool running = false;
 
 uint32_t timer1TicksNow() {
@@ -41,7 +42,7 @@ ISR(TIMER1_CAPT_vect) {
     // Blockweise Mittelung reduziert die Ziffernunruhe, ohne grosse Puffer.
     periodSum += newPeriod;
     ++averagedPeriods;
-    if (averagedPeriods >= PERIOD_AVERAGE_COUNT || periodTicks == 0) {
+    if (averagedPeriods >= periodAverageCount || periodTicks == 0) {
       periodTicks = periodSum / averagedPeriods;
       periodSum = 0;
       averagedPeriods = 0;
@@ -67,6 +68,8 @@ void startFrequencyMeasurement() {
   lastCaptureTicks = 0;
   periodTicks = 0;
   captureCount = 0;
+  const int16_t smoothing = settingValue(SettingField::Smoothing);
+  periodAverageCount = smoothing == 0 ? 1 : smoothing == 2 ? 8 : 4;
   periodSum = 0;
   averagedPeriods = 0;
   // Steigende Flanke, digitaler Noise Canceler, Takt F_CPU/1.

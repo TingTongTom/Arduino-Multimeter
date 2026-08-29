@@ -13,6 +13,14 @@ Alle Messansichten besitzen ohne weitere Hardware `HOLD`, `MIN`, `MAX` und
 Ziffernunruhe zu reduzieren. Eine erste Periode steht weiterhin unmittelbar
 zur Verfuegung.
 
+Die Einstellungen enthalten ausserdem drei Daempfungsstufen, Encoder-Richtung
+und -Raster, Langdruckdauer, OLED-Kontrast, Aktualisierungsintervall,
+Nachkommastellen, Display-Timeout sowie das Verhalten von Hold und Min/Max.
+Gefuehrte Referenzkalibrierungen berechnen den jeweiligen Faktor aus Soll- und
+Istwert. Stromnullung und Werkreset sind gegen versehentliches Ausloesen durch
+eine zweite Bestaetigung geschuetzt. Die Diagnoseansicht zeigt ADC-Rohwerte,
+freien SRAM, Firmware-, EEPROM- und Frequenzbereichsstatus.
+
 ## Abschliessende Pinbelegung
 
 | Nano-Pin | Funktion | Betriebsart / Hinweis |
@@ -49,20 +57,34 @@ auf D9/D10; keine andere Projektfunktion benutzt diese Pins. `millis()` und
   SRAM. Deshalb liegen die Menuebeschriftungen mit `F()` im Flash. Auf dem
   ATmega328P bleibt der RAM-Spielraum begrenzt; keine grossen lokalen Puffer
   oder `String`-Objekte ergaenzen.
-- A0, A1 und A3 verwerfen nach jedem moeglichen ADC-Kanalwechsel eine Messung
-  und mitteln danach 32, 32 beziehungsweise 64 Messungen. A2 verwirft ebenfalls
-  eine Wandlung und verwendet die zweite. Damit ist das Umschalten der
+- A0 und A1 verwerfen nach jedem moeglichen ADC-Kanalwechsel eine Messung und
+  mitteln je nach Daempfung 8, 32 oder 64 folgende Wandlungen. A3 verwirft
+  ebenfalls eine Wandlung und mittelt 16, 64 oder 128 Werte. A2 verwirft eine
+  Wandlung und verwendet die zweite. Damit ist das Umschalten der
   Sample-and-Hold-Stufe zwischen allen vier Kanaelen beruecksichtigt.
-- Spannung, Widerstand, Strom und Frequenz werden nominal alle 200 ms
-  aktualisiert. Die ADC-Mittelungen benoetigen bei Standard-ADC-Takt grob
-  3,5 ms, 3,5 ms und 6,8 ms. Eine volle OLED-Uebertragung bei 100-kHz-I2C
-  kommt hinzu; die Bedienung bleibt deutlich unterhalb einer Viertelsekunde.
+- Spannung, Widerstand, Strom und Frequenz werden mit dem einstellbaren
+  Intervall von 100 bis 1000 ms aktualisiert; Werkwert sind 200 ms. Die
+  Frequenzmessung laeuft davon unabhaengig per Input Capture und mittelt je
+  nach Daempfung 1, 4 oder 8 Perioden. Eine erste vollstaendige Periode steht
+  weiterhin unmittelbar zur Verfuegung.
 - Die Kapazitaetsmessung ist zustandsbasiert und blockiert nicht. OLED-Zugriffe
   werden waehrend zeitkritischer Lade- und Entladephasen vermieden. Feinladung:
   maximal 1,2 s; Grobladung: maximal 12 s; sichere Entladung: maximal 30 s
   plus 50 ms Stabilitaetspruefung.
-- Die Frequenzmessung arbeitet per Timer-1-Input-Capture unabhängig vom
+- Die Frequenzmessung arbeitet per Timer-1-Input-Capture unabhaengig vom
   OLED-Intervall. `KEIN PULS` erscheint nach 1,5 s ohne verwertbare Flanke.
+
+## EEPROM und Werkwerte
+
+- Das Speicherformat verwendet Kennung `0x4D4D`, Version 2 und eine CRC-16.
+- Gespeichert werden sieben Kalibrierwerte und zehn Bedien-/Anzeigeparameter.
+- Beim Start werden Kennung, Version, CRC und alle Wertebereiche geprueft.
+  Schlaegt eine Pruefung fehl, arbeitet das Geraet mit den Werkwerten aus
+  `config.h`; ein automatisches Ueberschreiben des EEPROM findet dabei nicht
+  statt.
+- Direkt bearbeitete Werte und Referenzkalibrierungen werden erst bei
+  Bestaetigung gespeichert. Stromnullung und Werkreset brauchen eine zweite
+  Bestaetigung.
 
 ## Grenzwertanzeigen und Benennung
 
@@ -92,10 +114,10 @@ Funktionen lowerCamelCase.
       Frequenzeingang ausschliesslich an D8.
 - [ ] Schutzwiderstaende, BAT43-Klemmdioden und Abblockkondensatoren sind
       entsprechend den Einzelanschlussplaenen bestueckt.
-- [ ] `Einstellungen` zeigt die erwarteten Werte; Aenderungen werden erst mit
-      einem bestaetigenden kurzen Druck ins EEPROM geschrieben.
-- [ ] Kurzer Druck in einer Messansicht schaltet `HOLD`, langer Druck kehrt
-      zurueck; Drehen prueft `LIVE`, `MIN`, `MAX` und `REL`.
+- [ ] `Einstellungen` zeigt die erwarteten Werte; langer Druck uebernimmt den
+      bearbeiteten Wert ins EEPROM.
+- [ ] Kurzer Druck schaltet in `LIVE`/`REL` Hold und setzt in `MIN`/`MAX` die
+      Extremwerte zurueck; langer Druck kehrt zurueck.
 
 ### Spannung 0 bis 25 V DC
 
@@ -147,13 +169,25 @@ Compilerwarnungen fehler- und warnungsfrei. Sowohl
 `arduino:avr:nano:cpu=atmega328old` als auch `arduino:avr:nano:cpu=atmega328`
 ergeben:
 
-- Flash: 25.294 von 30.720 Byte (82 %), 5.426 Byte frei.
-- Statisches SRAM: 552 von 2.048 Byte (26 %), 1.496 Byte vor dynamischen
+- Flash: 29.608 von 30.720 Byte (96 %), 1.112 Byte frei.
+- Statisches SRAM: 580 von 2.048 Byte (28 %), 1.468 Byte vor dynamischen
   Reservierungen frei.
 - Nach dem rund 1.024 Byte grossen OLED-Bildpuffer bleiben rechnerisch etwa
-  472 Byte, abzueglich geringem Allokations-Overhead, fuer Stack und Laufzeit.
+  444 Byte, abzueglich geringem Allokations-Overhead, fuer Stack und Laufzeit.
   Das ist ausreichend fuer den aktuellen, pufferarmen Aufbau, aber bewusst
   kein Spielraum fuer grosse lokale Arrays oder dynamische `String`-Objekte.
 
 Benoetigt werden `Adafruit GFX Library` und `Adafruit SSD1306` sowie deren
-Abhaengigkeiten.
+Abhaengigkeiten. Die angegebenen Groessen gehoeren zum dokumentierten Stand;
+nach jeder Codeaenderung muss der Build fuer beide Nano-Bootloadervarianten
+erneut ausgefuehrt und dieser Abschnitt aktualisiert werden.
+
+## Dokumentationspruefung
+
+Geprueft wurden README, Bauteilliste, Gesamtpruefung, alle fuenf
+Anschlussplaene, beide Frequenzvarianten und der Entwicklungs-Promptkatalog.
+Pinbezeichnungen, Messbereiche, Warnschwellen, Bedienung, EEPROM-Version,
+Werkwerte, Mittelungsstufen und Sicherheitsgrenzen sind mit dem Quellcode
+abgeglichen. Die SVG-Dateien bleiben die grafische Ergaenzung; bei einer
+Hardwareaenderung muessen immer Anschlussplan, SVG, Bauteilliste, `config.h`
+und diese Gesamtpruefung gemeinsam angepasst werden.

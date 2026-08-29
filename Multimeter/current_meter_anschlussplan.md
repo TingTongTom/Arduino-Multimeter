@@ -40,10 +40,11 @@ ausfuehren. Der grafische Plan liegt in `current_meter_schaltplan.svg`.
 ## Kalibrierung
 
 Der typische Startwert `CURRENT_SENSITIVITY_V_PER_A` ist 0,100 V/A. Reale
-ACS712-Module weichen davon ab. Zuerst bei sicher stromlosem Hochstrompfad die
-Spannung zwischen OUT und GND messen und als `CURRENT_ZERO_VOLTAGE` in
-`config.h` eintragen. Der Vorgabewert 2,160 V passt zur derzeit eingetragenen
-ADC-Referenz von 4,320 V und muss am realen Aufbau kontrolliert werden.
+ACS712-Module weichen davon ab. Zuerst bei garantiert stromlosem Hochstrompfad
+`Einstellungen > Strom jetzt nullen` zweimal bestaetigen. Die Firmware bildet
+den Nullpunkt aus dem ADC-Rohwert und der eingestellten ADC-Referenz und
+speichert ihn im EEPROM. Der Werkwert `CURRENT_ZERO_VOLTAGE` von 2,160 V gilt
+nur ohne gueltigen gespeicherten Wert beziehungsweise nach Werkreset.
 
 `CURRENT_AUTO_ZERO_AT_START` und `CURRENT_ZERO_CURRENT_GUARANTEED` bleiben
 normalerweise `false`. Beide duerfen nur auf `true` gesetzt werden, wenn die
@@ -52,10 +53,12 @@ Andernfalls wuerde ein vorhandener Strom als Nullpunkt gespeichert und alle
 folgenden Messungen verfaelschen. Ist nur einer der Schalter aktiv, verwendet
 die Software weiterhin den kalibrierten `CURRENT_ZERO_VOLTAGE`.
 
-Danach einen bekannten Strom in beiden Richtungen messen. Die Empfindlichkeit
-oder den `CURRENT_CORRECTION_FACTOR` so anpassen, dass Anzeige und
-Referenzmessung uebereinstimmen. Die Software verwirft nach jedem moeglichen
-ADC-Kanalwechsel die erste Wandlung und mittelt 64 weitere Messungen.
+Danach einen bekannten Strom in beiden Richtungen messen. Unter `Strom
+Referenz` den Betrag des bekannten Stroms einstellen und bei stabiler Messung
+mit langem Druck uebernehmen. Die Firmware passt den Stromkorrekturfaktor an;
+`CURRENT_CORRECTION_FACTOR` bleibt dessen Werkwert. Die Software verwirft nach
+jedem moeglichen ADC-Kanalwechsel die erste Wandlung und mittelt je nach
+Daempfung 16, 64 oder 128 weitere Messungen.
 
 ## Anzeige und Grenzwerte
 

@@ -16,7 +16,8 @@ Adafruit_SSD1306 display(OLED_WIDTH, OLED_HEIGHT, &Wire, OLED_RESET);
 volatile int16_t encoderDelta = 0;
 volatile uint8_t previousEncoderState = 0;
 
-constexpr uint8_t MENU_COUNT = 6;
+constexpr uint8_t MENU_COUNT = 7;
+constexpr uint8_t SETTINGS_COUNT = 24;
 
 const __FlashStringHelper *menuItemLabel(uint8_t item) {
   switch (item) {
@@ -25,7 +26,8 @@ const __FlashStringHelper *menuItemLabel(uint8_t item) {
     case 2: return F("Widerstand");
     case 3: return F("Strom");
     case 4: return F("Frequenz");
-    default: return F("Einstellungen");
+    case 5: return F("Einstellungen");
+    default: return F("Diagnose");
   }
 }
 
@@ -39,8 +41,14 @@ uint32_t buttonPressedMs = 0;
 ViewMode viewMode = ViewMode::Live;
 bool measurementHeld = false;
 ValueHistory measurementHistory;
+int8_t historyOwner = -1;
 uint8_t calibrationItem = 0;
 bool calibrationEditing = false;
+bool calibrationCoarse = false;
+bool resetPending = false;
+float referenceTarget = 1.0f;
+uint32_t lastInteractionMs = 0;
+bool displaySleeping = false;
 
 ValueHistory &activeHistory() {
   return measurementHistory;
@@ -105,11 +113,19 @@ ButtonEvent readButtonEvent() {
     if (stableButtonState == LOW) {
       buttonPressedMs = millis();
     } else {
-      return millis() - buttonPressedMs >= BUTTON_LONG_PRESS_MS
+      return millis() - buttonPressedMs >= static_cast<uint32_t>(
+                         settingValue(SettingField::LongPressMs))
                  ? ButtonEvent::LongPress : ButtonEvent::ShortPress;
     }
   }
   return ButtonEvent::None;
+}
+
+uint8_t displayDecimals(uint8_t normal) {
+  const int16_t mode = settingValue(SettingField::DecimalMode);
+  if (mode == 0 && normal > 0) return normal - 1;
+  if (mode == 2 && normal < 4) return normal + 1;
+  return normal;
 }
 
 void drawMeasurementFooter() {
@@ -171,7 +187,7 @@ void drawCalibration() {
   display.println(F("KALIBRIERUNG"));
   display.drawLine(0, 10, 127, 10, SSD1306_WHITE);
 
-  display.setCursor(0, 15);
+  display.setCursor(0, 14);
   if (calibrationItem == 0) display.println(F("ADC-Referenz"));
   else if (calibrationItem == 1) display.println(F("Spannung Faktor"));
   else if (calibrationItem == 2) display.println(F("Widerst. Faktor"));
@@ -179,21 +195,86 @@ void drawCalibration() {
   else if (calibrationItem == 4) display.println(F("Strom Faktor"));
   else if (calibrationItem == 5) display.println(F("Kap. fein Faktor"));
   else if (calibrationItem == 6) display.println(F("Kap. grob Faktor"));
+  else if (calibrationItem == 7) display.println(F("Daempfung"));
+  else if (calibrationItem == 8) display.println(F("Encoder Richtung"));
+  else if (calibrationItem == 9) display.println(F("Encoder Schritte"));
+  else if (calibrationItem == 10) display.println(F("Langdruck Zeit"));
+  else if (calibrationItem == 11) display.println(F("Display Kontrast"));
+  else if (calibrationItem == 12) display.println(F("Aktualisierung"));
+  else if (calibrationItem == 13) display.println(F("Nachkommastellen"));
+  else if (calibrationItem == 14) display.println(F("Display Aus"));
+  else if (calibrationItem == 15) display.println(F("Hold behalten"));
+  else if (calibrationItem == 16) display.println(F("Min/Max Neustart"));
+  else if (calibrationItem == 17) display.println(F("Strom jetzt nullen"));
+  else if (calibrationItem == 18) display.println(F("Spannung Referenz"));
+  else if (calibrationItem == 19) display.println(F("Widerst. Referenz"));
+  else if (calibrationItem == 20) display.println(F("Strom Referenz"));
+  else if (calibrationItem == 21) display.println(F("Kap. fein Referenz"));
+  else if (calibrationItem == 22) display.println(F("Kap. grob Referenz"));
   else display.println(F("Werkwerte laden"));
 
+  display.setTextSize(2);
+  display.setCursor(5, 28);
   if (calibrationItem < 7) {
-    display.setTextSize(2);
-    display.setCursor(8, 29);
     display.print(calibrationValue(static_cast<CalibrationField>(calibrationItem)), 3);
-    if (calibrationItem == 0 || calibrationItem == 3) display.print(F(" V"));
+  } else if (calibrationItem <= 16) {
+    const int16_t value = settingValue(static_cast<SettingField>(calibrationItem - 7));
+    if (calibrationItem == 7) display.print(value == 0 ? F("SCHNELL") : value == 1 ? F("NORMAL") : F("RUHIG"));
+    else if (calibrationItem == 8) display.print(value < 0 ? F("UMGEKEHRT") : F("NORMAL"));
+    else if (calibrationItem == 13) display.print(value == 0 ? F("WENIG") : value == 1 ? F("NORMAL") : F("MEHR"));
+    else if (calibrationItem == 14) { if (value == 0) display.print(F("AUS")); else { display.print(value); display.print(F(" min")); } }
+    else if (calibrationItem >= 15) display.print(value ? F("JA") : F("NEIN"));
+    else { display.print(value); if (calibrationItem == 10 || calibrationItem == 12) display.print(F(" ms")); }
+  } else if (calibrationItem <= 22 && calibrationEditing) {
+    display.print(referenceTarget, calibrationItem == 19 ? 0 : 3);
+    if (calibrationItem == 18) display.print(F(" V"));
+    else if (calibrationItem == 19) display.print(F(" Ohm"));
+    else if (calibrationItem == 20) display.print(F(" A"));
+    else display.print(F(" uF"));
   } else {
-    display.setCursor(8, 30);
-    display.print(F("Druecken"));
+    display.print(resetPending ? F("SICHER?") : F("DRUECKEN"));
   }
   display.setTextSize(1);
+  if (calibrationEditing && calibrationItem >= 21 && calibrationItem <= 22) {
+    display.setCursor(0, 45);
+    display.print(getCapacitanceMeasurement().status == CapacitanceStatus::Valid
+                      ? F("Messung bereit") : F("Messung laeuft"));
+  }
   display.setCursor(0, 55);
-  display.print(calibrationEditing ? F("Drehen, Klick speich.")
-                                   : F("Klick:aendern Lang:zur"));
+  display.print(calibrationEditing ? (calibrationCoarse ? F("GROB Klick:fein Lang:OK")
+                                                       : F("FEIN Klick:grob Lang:OK"))
+                                   : F("Klick:wahl Lang:zurueck"));
+  display.display();
+}
+
+int freeRam() {
+  extern int __heap_start, *__brkval;
+  int local;
+  return reinterpret_cast<int>(&local) -
+         reinterpret_cast<int>(__brkval ? __brkval : &__heap_start);
+}
+
+void drawDiagnostics() {
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print(F("DIAGNOSE FW "));
+  display.println(F("2.0"));
+  display.drawLine(0, 10, 127, 10, SSD1306_WHITE);
+  display.setCursor(0, 14);
+  display.print(F("ADC "));
+  display.print(analogRead(A0)); display.print('/');
+  display.print(analogRead(A1)); display.print('/');
+  display.print(analogRead(A2)); display.print('/');
+  display.println(analogRead(A3));
+  display.print(F("SRAM frei: ")); display.println(freeRam());
+  display.print(F("EEPROM v")); display.print(calibrationStorageVersion());
+  display.println(calibrationStorageValid() ? F(" CRC OK") : F(" Werkwerte"));
+  display.print(F("Freq: "));
+  display.println(digitalRead(FREQUENCY_EXTENDED_RANGE_PIN) ? F("x1") : F("x16"));
+  display.setCursor(0, 55);
+  display.println(F("Lang: zurueck"));
   display.display();
 }
 
@@ -218,7 +299,7 @@ void drawVoltmeter() {
   } else {
     display.setTextSize(2);
     display.setCursor(12, 22);
-    display.print(voltage, 2);
+    display.print(voltage, displayDecimals(2));
     display.println(F(" V"));
   }
 
@@ -248,11 +329,11 @@ void drawResistance() {
   } else if (measurement.status == ResistanceStatus::AboveRange) {
     display.println(F("> 1 MOhm"));
   } else if (shownOhms >= 1000000.0f) {
-    display.print(shownOhms / 1000000.0f, 2);
+    display.print(shownOhms / 1000000.0f, displayDecimals(2));
     display.println(F(" MOhm"));
   } else if (shownOhms >= 1000.0f) {
     const uint8_t decimals = shownOhms < 10000.0f ? 2 : 1;
-    display.print(shownOhms / 1000.0f, decimals);
+    display.print(shownOhms / 1000.0f, displayDecimals(decimals));
     display.println(F(" kOhm"));
   } else {
     display.print(shownOhms, 0);
@@ -296,10 +377,10 @@ void drawCapacitance() {
     const float shownFarads = displayedValue();
     display.setTextSize(2);
     if (fabs(shownFarads) >= 1.0e-3f) {
-      display.print(shownFarads * 1.0e3f, 2);
+      display.print(shownFarads * 1.0e3f, displayDecimals(2));
       display.println(F(" mF"));
     } else if (fabs(shownFarads) >= 1.0e-6f) {
-      display.print(shownFarads * 1.0e6f, 2);
+      display.print(shownFarads * 1.0e6f, displayDecimals(2));
       display.println(F(" uF"));
     } else {
       display.print(shownFarads * 1.0e9f, 0);
@@ -351,7 +432,7 @@ void drawCurrent() {
     display.setTextSize(2);
     display.setCursor(5, 17);
     if (shownAmperes >= 0.0f) display.print('+');
-    display.print(shownAmperes, 1);
+    display.print(shownAmperes, displayDecimals(1));
     display.println(F(" A"));
     display.setTextSize(1);
     display.setCursor(0, 39);
@@ -390,14 +471,15 @@ void drawFrequency() {
     display.println(measurement.extendedRange ? F("> 1.6 MHz")
                                               : F("> 100 kHz"));
   } else if (fabs(shownHertz) >= 1000000.0f) {
-    display.print(shownHertz / 1000000.0f, 3);
+    display.print(shownHertz / 1000000.0f, displayDecimals(3));
     display.println(F(" MHz"));
   } else if (fabs(shownHertz) >= 1000.0f) {
     display.print(shownHertz / 1000.0f,
-                  fabs(shownHertz) < 10000.0f ? 3 : 2);
+                  displayDecimals(fabs(shownHertz) < 10000.0f ? 3 : 2));
     display.println(F(" kHz"));
   } else {
-    display.print(shownHertz, fabs(shownHertz) < 10.0f ? 2 : 1);
+    display.print(shownHertz,
+                  displayDecimals(fabs(shownHertz) < 10.0f ? 2 : 1));
     display.println(F(" Hz"));
   }
   drawMeasurementFooter();
@@ -411,10 +493,34 @@ void handleDetent(int8_t direction) {
   }
   if (selectedItem == 5) {
     if (!calibrationEditing) {
-      calibrationItem = (calibrationItem + direction + 8) % 8;
+      calibrationItem = (calibrationItem + direction + SETTINGS_COUNT) % SETTINGS_COUNT;
+      resetPending = false;
     } else if (calibrationItem < 7) {
       const CalibrationField field = static_cast<CalibrationField>(calibrationItem);
-      setCalibrationValue(field, calibrationValue(field) + direction * 0.001f);
+      setCalibrationValue(field, calibrationValue(field) +
+                          direction * (calibrationCoarse ? 0.010f : 0.001f));
+    } else if (calibrationItem <= 16) {
+      const SettingField field = static_cast<SettingField>(calibrationItem - 7);
+      int16_t step = 1;
+      if (calibrationItem == 10) step = calibrationCoarse ? 100 : 50;
+      if (calibrationItem == 11) step = calibrationCoarse ? 16 : 4;
+      if (calibrationItem == 12) step = calibrationCoarse ? 100 : 50;
+      if (calibrationItem == 14) step = calibrationCoarse ? 5 : 1;
+      int16_t value = settingValue(field);
+      if (calibrationItem == 8) value = -value;
+      else if (calibrationItem == 9) value = direction > 0 ? value * 2 : value / 2;
+      else if (calibrationItem == 15 || calibrationItem == 16) value = !value;
+      else value += direction * step;
+      setSettingValue(field, value);
+      if (calibrationItem == 11) {
+        display.ssd1306_command(SSD1306_SETCONTRAST);
+        display.ssd1306_command(settingValue(field));
+      }
+    } else if (calibrationItem <= 22) {
+      float step = calibrationCoarse ? 1.0f : 0.1f;
+      if (calibrationItem == 19) step = calibrationCoarse ? 1000.0f : 100.0f;
+      if (calibrationItem >= 21) step = calibrationCoarse ? 10.0f : 1.0f;
+      referenceTarget = max(0.001f, referenceTarget + direction * step);
     }
     return;
   }
@@ -426,6 +532,33 @@ void handleDetent(int8_t direction) {
     activeHistory().relativeBase = activeHistory().live;
 }
 
+void applyReferenceCalibration() {
+  float measured = 0.0f;
+  CalibrationField field = CalibrationField::VoltageFactor;
+  if (calibrationItem == 18) {
+    measured = readInputVoltage();
+    field = CalibrationField::VoltageFactor;
+  } else if (calibrationItem == 19) {
+    const ResistanceMeasurement result = readResistance();
+    if (result.status == ResistanceStatus::Valid) measured = result.ohms;
+    field = CalibrationField::ResistanceFactor;
+  } else if (calibrationItem == 20) {
+    const CurrentMeasurement result = readCurrent();
+    if (result.status != CurrentStatus::AdcError) measured = fabs(result.amperes);
+    field = CalibrationField::CurrentFactor;
+  } else {
+    const CapacitanceMeasurement result = getCapacitanceMeasurement();
+    if (result.status == CapacitanceStatus::Valid) measured = result.farads * 1.0e6f;
+    field = calibrationItem == 21 ? CalibrationField::CapacitanceFineFactor
+                                  : CalibrationField::CapacitanceCoarseFactor;
+  }
+  if (measured > 0.000001f) {
+    setCalibrationValue(field, calibrationValue(field) * referenceTarget / measured);
+    saveCalibration();
+  }
+  if (calibrationItem >= 21) stopCapacitanceMeasurement();
+}
+
 void leaveDetailScreen() {
   if (selectedItem == 1) stopCapacitanceMeasurement();
   if (selectedItem == 4) stopFrequencyMeasurement();
@@ -434,7 +567,7 @@ void leaveDetailScreen() {
     calibrationEditing = false;
   }
   detailScreen = false;
-  measurementHeld = false;
+  if (!settingValue(SettingField::KeepHold)) measurementHeld = false;
 }
 
 void setup() {
@@ -465,7 +598,10 @@ void setup() {
   display.setCursor(12, 24);
   display.println(F("System startet..."));
   display.display();
+  display.ssd1306_command(SSD1306_SETCONTRAST);
+  display.ssd1306_command(settingValue(SettingField::DisplayContrast));
   delay(700);
+  lastInteractionMs = millis();
   drawMenu();
 }
 
@@ -482,15 +618,15 @@ void loop() {
   encoderDelta = 0;
   interrupts();
 
-  accumulatedSteps += movement;
-  // Die meisten KY-040-Encoder liefern vier Zustandswechsel pro Rastung.
-  while (accumulatedSteps >= 4) {
-    accumulatedSteps -= 4;
+  accumulatedSteps += movement * settingValue(SettingField::EncoderDirection);
+  const int16_t encoderSteps = settingValue(SettingField::EncoderSteps);
+  while (accumulatedSteps >= encoderSteps) {
+    accumulatedSteps -= encoderSteps;
     handleDetent(1);
     redraw = true;
   }
-  while (accumulatedSteps <= -4) {
-    accumulatedSteps += 4;
+  while (accumulatedSteps <= -encoderSteps) {
+    accumulatedSteps += encoderSteps;
     handleDetent(-1);
     redraw = true;
   }
@@ -500,26 +636,71 @@ void loop() {
     if (!detailScreen) {
       detailScreen = true;
       viewMode = ViewMode::Live;
-      measurementHeld = false;
-      if (selectedItem < 5) measurementHistory = ValueHistory();
+      if (!settingValue(SettingField::KeepHold) || historyOwner != selectedItem ||
+          settingValue(SettingField::ResetMinMax))
+        measurementHeld = false;
+      if (selectedItem < 5 &&
+          (settingValue(SettingField::ResetMinMax) || historyOwner != selectedItem))
+        measurementHistory = ValueHistory();
+      if (selectedItem < 5) historyOwner = selectedItem;
       if (selectedItem == 1) startCapacitanceMeasurement();
       if (selectedItem == 4) startFrequencyMeasurement();
     } else if (selectedItem == 5) {
-      if (calibrationItem == 7) {
-        resetCalibration();
+      if (calibrationItem == 23) {
+        if (resetPending) { resetCalibration(); resetPending = false; }
+        else resetPending = true;
+      } else if (calibrationItem == 17) {
+        if (!resetPending) {
+          resetPending = true;
+        } else {
+          const CurrentMeasurement result = readCurrent();
+          setCalibrationValue(CalibrationField::CurrentZero,
+              result.averageAdc * calibrationValue(CalibrationField::AdcReference) / 1023.0f);
+          saveCalibration();
+          resetPending = false;
+        }
+      } else if (!calibrationEditing) {
+        calibrationEditing = true;
+        calibrationCoarse = false;
+        if (calibrationItem == 18) referenceTarget = 5.0f;
+        else if (calibrationItem == 19) referenceTarget = 10000.0f;
+        else if (calibrationItem == 20) referenceTarget = 1.0f;
+        else if (calibrationItem == 21) { referenceTarget = 1.0f; startCapacitanceMeasurement(); }
+        else if (calibrationItem == 22) { referenceTarget = 1000.0f; startCapacitanceMeasurement(); }
       } else {
-        calibrationEditing = !calibrationEditing;
-        if (!calibrationEditing) saveCalibration();
+        calibrationCoarse = !calibrationCoarse;
       }
     } else {
-      if (!measurementHeld && activeHistory().valid)
-        activeHistory().held = displayedValue();
-      measurementHeld = !measurementHeld;
+      if ((viewMode == ViewMode::Minimum || viewMode == ViewMode::Maximum) &&
+          activeHistory().valid) {
+        activeHistory().minimum = activeHistory().maximum = activeHistory().live;
+      } else {
+        if (!measurementHeld && activeHistory().valid)
+          activeHistory().held = displayedValue();
+        measurementHeld = !measurementHeld;
+      }
     }
     redraw = true;
   } else if (buttonEvent == ButtonEvent::LongPress && detailScreen) {
-    leaveDetailScreen();
+    if (selectedItem == 5 && calibrationEditing) {
+      if (calibrationItem >= 18 && calibrationItem <= 22)
+        applyReferenceCalibration();
+      else
+        saveCalibration();
+      calibrationEditing = false;
+    } else {
+      leaveDetailScreen();
+    }
     redraw = true;
+  }
+
+  if (movement != 0 || buttonEvent != ButtonEvent::None) {
+    lastInteractionMs = millis();
+    if (displaySleeping) {
+      display.ssd1306_command(SSD1306_DISPLAYON);
+      displaySleeping = false;
+      redraw = true;
+    }
   }
 
   if (detailScreen && selectedItem == 1) {
@@ -537,31 +718,51 @@ void loop() {
     }
   }
 
+  if (detailScreen && selectedItem == 5 && calibrationEditing &&
+      calibrationItem >= 21 && calibrationItem <= 22) {
+    const CapacitanceStatus previousStatus = getCapacitanceMeasurement().status;
+    updateCapacitanceMeasurement();
+    const CapacitanceStatus currentStatus = getCapacitanceMeasurement().status;
+    if (currentStatus != previousStatus &&
+        currentStatus != CapacitanceStatus::Measuring &&
+        currentStatus != CapacitanceStatus::Discharging)
+      redraw = true;
+  }
+
   if (detailScreen && selectedItem == 0 &&
-      (millis() - lastVoltageUpdateMs >= VOLTAGE_UPDATE_MS)) {
+      (millis() - lastVoltageUpdateMs >= static_cast<uint32_t>(
+          settingValue(SettingField::UpdateIntervalMs)))) {
     lastVoltageUpdateMs = millis();
     redraw = true;
   }
 
   if (detailScreen && selectedItem == 2 &&
-      (millis() - lastResistanceUpdateMs >= RESISTANCE_UPDATE_MS)) {
+      (millis() - lastResistanceUpdateMs >= static_cast<uint32_t>(
+          settingValue(SettingField::UpdateIntervalMs)))) {
     lastResistanceUpdateMs = millis();
     redraw = true;
   }
 
   if (detailScreen && selectedItem == 3 &&
-      (millis() - lastCurrentUpdateMs >= CURRENT_UPDATE_MS)) {
+      (millis() - lastCurrentUpdateMs >= static_cast<uint32_t>(
+          settingValue(SettingField::UpdateIntervalMs)))) {
     lastCurrentUpdateMs = millis();
     redraw = true;
   }
 
   if (detailScreen && selectedItem == 4 &&
-      (millis() - lastFrequencyUpdateMs >= FREQUENCY_UPDATE_MS)) {
+      (millis() - lastFrequencyUpdateMs >= static_cast<uint32_t>(
+          settingValue(SettingField::UpdateIntervalMs)))) {
     lastFrequencyUpdateMs = millis();
     redraw = true;
   }
 
-  if (redraw) {
+  const CapacitanceStatus settingsCapStatus = getCapacitanceMeasurement().status;
+  const bool capTimingCritical = detailScreen && selectedItem == 5 &&
+      calibrationEditing && calibrationItem >= 21 && calibrationItem <= 22 &&
+      (settingsCapStatus == CapacitanceStatus::Measuring ||
+       settingsCapStatus == CapacitanceStatus::Discharging);
+  if (redraw && !capTimingCritical) {
     if (!detailScreen) {
       drawMenu();
     } else if (selectedItem == 0) {
@@ -576,8 +777,17 @@ void loop() {
       drawFrequency();
     } else if (selectedItem == 5) {
       drawCalibration();
+    } else if (selectedItem == 6) {
+      drawDiagnostics();
     } else {
       drawDetail();
     }
+  }
+
+  const int16_t timeoutMin = settingValue(SettingField::DisplayTimeoutMin);
+  if (!displaySleeping && timeoutMin > 0 &&
+      millis() - lastInteractionMs >= static_cast<uint32_t>(timeoutMin) * 60000UL) {
+    display.ssd1306_command(SSD1306_DISPLAYOFF);
+    displaySleeping = true;
   }
 }
