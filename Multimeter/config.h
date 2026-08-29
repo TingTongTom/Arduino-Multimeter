@@ -13,6 +13,7 @@ constexpr uint8_t ENCODER_A_PIN = 2;
 constexpr uint8_t ENCODER_B_PIN = 3;
 constexpr uint8_t ENCODER_BUTTON_PIN = 4;
 constexpr uint16_t BUTTON_DEBOUNCE_MS = 30;
+constexpr uint16_t BUTTON_LONG_PRESS_MS = 700;
 
 constexpr uint8_t VOLTAGE_INPUT_PIN = A0;
 constexpr uint8_t RESISTANCE_INPUT_PIN = A1;

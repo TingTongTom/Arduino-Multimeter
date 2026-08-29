@@ -1,6 +1,7 @@
 #include <Arduino.h>
 
 #include "config.h"
+#include "calibration.h"
 #include "voltmeter.h"
 
 float readInputVoltage() {
@@ -13,8 +14,11 @@ float readInputVoltage() {
   }
 
   const float averageAdc = adcSum / static_cast<float>(VOLTAGE_SAMPLE_COUNT);
-  const float voltageAtA0 = averageAdc * ADC_REFERENCE_VOLTAGE / 1023.0f;
+  const float voltageAtA0 = averageAdc *
+                            calibrationValue(CalibrationField::AdcReference) /
+                            1023.0f;
   const float dividerFactor =
       (DIVIDER_R1_OHM + DIVIDER_R2_OHM) / DIVIDER_R2_OHM;
-  return voltageAtA0 * dividerFactor * VOLTAGE_CORRECTION_FACTOR;
+  return voltageAtA0 * dividerFactor *
+         calibrationValue(CalibrationField::VoltageFactor);
 }

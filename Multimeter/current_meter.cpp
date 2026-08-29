@@ -1,6 +1,7 @@
 #include <Arduino.h>
 
 #include "config.h"
+#include "calibration.h"
 #include "current_meter.h"
 
 namespace {
@@ -20,11 +21,13 @@ float readAverageAdc(uint8_t sampleCount) {
 
 void beginCurrentMeter() {
   pinMode(CURRENT_INPUT_PIN, INPUT);
+  zeroVoltage = calibrationValue(CalibrationField::CurrentZero);
   if (CURRENT_AUTO_ZERO_AT_START && CURRENT_ZERO_CURRENT_GUARANTEED) {
     const float averageAdc = readAverageAdc(CURRENT_ZERO_SAMPLE_COUNT);
     if (averageAdc >= CURRENT_PLAUSIBLE_ADC_MIN &&
         averageAdc <= CURRENT_PLAUSIBLE_ADC_MAX) {
-      zeroVoltage = averageAdc * ADC_REFERENCE_VOLTAGE / 1023.0f;
+      zeroVoltage = averageAdc *
+                    calibrationValue(CalibrationField::AdcReference) / 1023.0f;
     }
   }
 }
@@ -34,6 +37,8 @@ float getCurrentZeroVoltage() {
 }
 
 CurrentMeasurement readCurrent() {
+  if (!(CURRENT_AUTO_ZERO_AT_START && CURRENT_ZERO_CURRENT_GUARANTEED))
+    zeroVoltage = calibrationValue(CalibrationField::CurrentZero);
   const float averageAdc = readAverageAdc(CURRENT_SAMPLE_COUNT);
   if (averageAdc < CURRENT_PLAUSIBLE_ADC_MIN ||
       averageAdc > CURRENT_PLAUSIBLE_ADC_MAX) {
@@ -41,10 +46,10 @@ CurrentMeasurement readCurrent() {
   }
 
   const float sensorVoltage =
-      averageAdc * ADC_REFERENCE_VOLTAGE / 1023.0f;
+      averageAdc * calibrationValue(CalibrationField::AdcReference) / 1023.0f;
   const float amperes = (sensorVoltage - zeroVoltage) /
                        CURRENT_SENSITIVITY_V_PER_A *
-                       CURRENT_CORRECTION_FACTOR;
+                       calibrationValue(CalibrationField::CurrentFactor);
   const float absoluteCurrent = fabs(amperes);
 
   if (absoluteCurrent > CURRENT_MAX_ABS_A) {

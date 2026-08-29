@@ -72,12 +72,22 @@ Im Bibliotheksverwalter der Arduino IDE installieren:
 2. Sketch `Multimeter.ino` oeffnen.
 3. Board **Arduino Nano** und den passenden Prozessor/Bootloader waehlen.
 4. Bibliotheken installieren und Sketch hochladen.
-5. Drehen wechselt den Menuepunkt; Druecken oeffnet oder schliesst die Seite.
+5. Im Hauptmenue wechselt Drehen den Menuepunkt; ein kurzer Druck oeffnet die
+   Seite. In einer Messansicht schaltet Drehen zwischen `LIVE`, `MIN`, `MAX`
+   und `REL` um. Ein kurzer Druck friert die Anzeige mit `HOLD` ein oder gibt
+   sie wieder frei; ein langer Druck (etwa 0,7 s) kehrt zum Hauptmenue zurueck.
    Die Kapazitaetsmessung startet beim Oeffnen automatisch mit einer sicheren
    Entladung.
    Die Frequenzmessung startet und stoppt mit ihrer Menueansicht.
-6. `Einstellungen` zeigt die derzeit verwendeten Kalibrierparameter nur an.
-   Die Seite schreibt weder Konfigurations- noch EEPROM-Werte.
+6. Unter `Einstellungen` wird mit Drehen ein Kalibrierwert ausgewaehlt. Ein
+   kurzer Druck startet die Bearbeitung, Drehen aendert den Wert und ein
+   weiterer kurzer Druck speichert ihn im EEPROM. `Werkwerte laden` stellt
+   die Vorgaben aus `config.h` wieder her. Ein langer Druck fuehrt zurueck.
+
+Beim Wechsel auf `REL` wird der aktuelle Messwert als Nullpunkt uebernommen.
+Minimum und Maximum werden beim erneuten Oeffnen einer Messansicht geloescht.
+Die Warn- und Plausibilitaetsanzeigen bleiben auch bei den Zusatzfunktionen
+aktiv.
 
 Die abschliessende Pinbelegung, Projektpruefung und gemeinsame
 Inbetriebnahme-Checkliste stehen in `PROJEKT_PRUEFUNG.md`.

@@ -9,6 +9,9 @@ volatile uint32_t timer1Overflows = 0;
 volatile uint32_t lastCaptureTicks = 0;
 volatile uint32_t periodTicks = 0;
 volatile uint8_t captureCount = 0;
+volatile uint32_t periodSum = 0;
+volatile uint8_t averagedPeriods = 0;
+constexpr uint8_t PERIOD_AVERAGE_COUNT = 4;
 bool running = false;
 
 uint32_t timer1TicksNow() {
@@ -33,7 +36,17 @@ ISR(TIMER1_CAPT_vect) {
   // Ueberlauf deshalb dem Zeitstempel zurechnen, wenn Capture danach lag.
   if ((TIFR1 & _BV(TOV1)) && captured < 0x8000U) ++high;
   const uint32_t now = (high << 16) | captured;
-  if (captureCount != 0) periodTicks = now - lastCaptureTicks;
+  if (captureCount != 0) {
+    const uint32_t newPeriod = now - lastCaptureTicks;
+    // Blockweise Mittelung reduziert die Ziffernunruhe, ohne grosse Puffer.
+    periodSum += newPeriod;
+    ++averagedPeriods;
+    if (averagedPeriods >= PERIOD_AVERAGE_COUNT || periodTicks == 0) {
+      periodTicks = periodSum / averagedPeriods;
+      periodSum = 0;
+      averagedPeriods = 0;
+    }
+  }
   lastCaptureTicks = now;
   if (captureCount < 2) ++captureCount;
 }
@@ -54,6 +67,8 @@ void startFrequencyMeasurement() {
   lastCaptureTicks = 0;
   periodTicks = 0;
   captureCount = 0;
+  periodSum = 0;
+  averagedPeriods = 0;
   // Steigende Flanke, digitaler Noise Canceler, Takt F_CPU/1.
   TCCR1B = _BV(ICES1) | _BV(ICNC1) | _BV(CS10);
   TIMSK1 = _BV(ICIE1) | _BV(TOIE1);

@@ -1,12 +1,17 @@
 # Projektpruefung und Inbetriebnahme
 
 Stand der Pruefung: klassischer Arduino Nano mit ATmega328P, 16 MHz und 5 V.
-Der Menuepunkt `Einstellungen` ist eine reine Kalibrieranzeige. Er zeigt
-ADC-Referenz, beide Spannungsteilerwiderstaende, Widerstandsreferenz,
-tatsaechlich verwendeten ACS712-Nullpunkt und ACS712-Empfindlichkeit. Es gibt
-keinen Schreibpfad zu EEPROM oder `config.h` und keine automatische Aenderung
-gespeicherter Werte. Die optionale ACS-Autonullung bleibt in `config.h`
-standardmaessig doppelt gesperrt.
+Der Menuepunkt `Einstellungen` erlaubt die Kalibrierung von ADC-Referenz,
+Spannungs-, Widerstands- und Stromkorrektur, ACS712-Nullpunkt sowie den beiden
+Kapazitaetsbereichen. Bestaetigte Werte werden mit Versionskennung und CRC im
+EEPROM gespeichert. Unplausible, beschaedigte oder veraltete EEPROM-Daten
+werden ignoriert; dann gelten die Werkwerte aus `config.h`. Die optionale
+ACS-Autonullung bleibt in `config.h` standardmaessig doppelt gesperrt.
+
+Alle Messansichten besitzen ohne weitere Hardware `HOLD`, `MIN`, `MAX` und
+`REL`. Die Frequenzanzeige mittelt vier aufeinanderfolgende Perioden, um die
+Ziffernunruhe zu reduzieren. Eine erste Periode steht weiterhin unmittelbar
+zur Verfuegung.
 
 ## Abschliessende Pinbelegung
 
@@ -87,8 +92,10 @@ Funktionen lowerCamelCase.
       Frequenzeingang ausschliesslich an D8.
 - [ ] Schutzwiderstaende, BAT43-Klemmdioden und Abblockkondensatoren sind
       entsprechend den Einzelanschlussplaenen bestueckt.
-- [ ] `Einstellungen` zeigt die erwarteten Werte; Kalibrierwerte werden nur
-      bewusst in `config.h` geaendert und danach neu kompiliert.
+- [ ] `Einstellungen` zeigt die erwarteten Werte; Aenderungen werden erst mit
+      einem bestaetigenden kurzen Druck ins EEPROM geschrieben.
+- [ ] Kurzer Druck in einer Messansicht schaltet `HOLD`, langer Druck kehrt
+      zurueck; Drehen prueft `LIVE`, `MIN`, `MAX` und `REL`.
 
 ### Spannung 0 bis 25 V DC
 
@@ -135,16 +142,16 @@ Funktionen lowerCamelCase.
 
 ## Buildnachweis
 
-Arduino CLI 1.5.1 kompiliert den Stand mit AVR-Core 1.8.8 und maximalen
+Arduino CLI kompiliert den Stand mit AVR-Core 1.8.8 und maximalen
 Compilerwarnungen fehler- und warnungsfrei. Sowohl
 `arduino:avr:nano:cpu=atmega328old` als auch `arduino:avr:nano:cpu=atmega328`
 ergeben:
 
-- Flash: 22.286 von 30.720 Byte (72 %), 8.434 Byte frei.
-- Statisches SRAM: 454 von 2.048 Byte (22 %), 1.594 Byte vor dynamischen
+- Flash: 25.294 von 30.720 Byte (82 %), 5.426 Byte frei.
+- Statisches SRAM: 552 von 2.048 Byte (26 %), 1.496 Byte vor dynamischen
   Reservierungen frei.
 - Nach dem rund 1.024 Byte grossen OLED-Bildpuffer bleiben rechnerisch etwa
-  570 Byte, abzueglich geringem Allokations-Overhead, fuer Stack und Laufzeit.
+  472 Byte, abzueglich geringem Allokations-Overhead, fuer Stack und Laufzeit.
   Das ist ausreichend fuer den aktuellen, pufferarmen Aufbau, aber bewusst
   kein Spielraum fuer grosse lokale Arrays oder dynamische `String`-Objekte.
 

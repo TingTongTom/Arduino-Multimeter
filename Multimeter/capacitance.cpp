@@ -3,6 +3,7 @@
 
 #include "capacitance.h"
 #include "config.h"
+#include "calibration.h"
 
 namespace {
 CapacitanceMeasurement result = {0.0f, CapacitanceStatus::Idle, false};
@@ -56,8 +57,9 @@ void finishFromElapsed(uint32_t elapsedUs) {
   const float logarithm = -log(1.0f - thresholdRatio);
   const float reference = fineRange ? CAPACITANCE_FINE_REFERENCE_OHM
                                     : CAPACITANCE_COARSE_REFERENCE_OHM;
-  const float correction = fineRange ? CAPACITANCE_FINE_CORRECTION_FACTOR
-                                     : CAPACITANCE_COARSE_CORRECTION_FACTOR;
+  const float correction = fineRange
+      ? calibrationValue(CalibrationField::CapacitanceFineFactor)
+      : calibrationValue(CalibrationField::CapacitanceCoarseFactor);
   result.farads = (elapsedUs * 1.0e-6f) /
                   ((reference + CAPACITANCE_PROTECTION_OHM) * logarithm) *
                   correction;

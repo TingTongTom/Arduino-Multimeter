@@ -1,6 +1,7 @@
 #include <Arduino.h>
 
 #include "config.h"
+#include "calibration.h"
 #include "resistance.h"
 
 ResistanceMeasurement readResistance() {
@@ -22,7 +23,7 @@ ResistanceMeasurement readResistance() {
   // R_X liegt unterhalb des Messknotens gegen GND.
   const float resistance = RESISTANCE_REFERENCE_OHM * averageAdc /
                            (1023.0f - averageAdc) *
-                           RESISTANCE_CORRECTION_FACTOR;
+                           calibrationValue(CalibrationField::ResistanceFactor);
 
   if (resistance < MIN_RESISTANCE_OHM) {
     return {resistance, averageAdc, ResistanceStatus::BelowRange};

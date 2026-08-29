@@ -3,11 +3,13 @@
 #include <Adafruit_SSD1306.h>
 
 #include "config.h"
+#include "calibration.h"
 #include "capacitance.h"
 #include "current_meter.h"
 #include "frequency_meter.h"
 #include "resistance.h"
 #include "voltmeter.h"
+#include "ui_types.h"
 
 Adafruit_SSD1306 display(OLED_WIDTH, OLED_HEIGHT, &Wire, OLED_RESET);
 
@@ -32,6 +34,46 @@ bool detailScreen = false;
 bool lastButtonReading = HIGH;
 bool stableButtonState = HIGH;
 uint32_t lastButtonChangeMs = 0;
+uint32_t buttonPressedMs = 0;
+
+ViewMode viewMode = ViewMode::Live;
+bool measurementHeld = false;
+ValueHistory measurementHistory;
+uint8_t calibrationItem = 0;
+bool calibrationEditing = false;
+
+ValueHistory &activeHistory() {
+  return measurementHistory;
+}
+
+void updateHistory(float value) {
+  ValueHistory &history = activeHistory();
+  history.live = value;
+  if (!history.valid) {
+    history.minimum = history.maximum = value;
+    history.valid = true;
+  } else {
+    if (value < history.minimum) history.minimum = value;
+    if (value > history.maximum) history.maximum = value;
+  }
+}
+
+float displayedValue() {
+  const ValueHistory &history = activeHistory();
+  if (measurementHeld) return history.held;
+  if (viewMode == ViewMode::Minimum) return history.minimum;
+  if (viewMode == ViewMode::Maximum) return history.maximum;
+  if (viewMode == ViewMode::Relative) return history.live - history.relativeBase;
+  return history.live;
+}
+
+const __FlashStringHelper *viewModeLabel() {
+  if (measurementHeld) return F("HOLD");
+  if (viewMode == ViewMode::Minimum) return F("MIN");
+  if (viewMode == ViewMode::Maximum) return F("MAX");
+  if (viewMode == ViewMode::Relative) return F("REL");
+  return F("LIVE");
+}
 
 void updateEncoder() {
   // Zustandsfolge fuer einen mechanischen Quadraturencoder.
@@ -49,7 +91,7 @@ void updateEncoder() {
   previousEncoderState = currentState;
 }
 
-bool buttonWasPressed() {
+ButtonEvent readButtonEvent() {
   const bool reading = digitalRead(ENCODER_BUTTON_PIN);
 
   if (reading != lastButtonReading) {
@@ -60,9 +102,22 @@ bool buttonWasPressed() {
   if ((millis() - lastButtonChangeMs) >= BUTTON_DEBOUNCE_MS &&
       reading != stableButtonState) {
     stableButtonState = reading;
-    return stableButtonState == LOW;
+    if (stableButtonState == LOW) {
+      buttonPressedMs = millis();
+    } else {
+      return millis() - buttonPressedMs >= BUTTON_LONG_PRESS_MS
+                 ? ButtonEvent::LongPress : ButtonEvent::ShortPress;
+    }
   }
-  return false;
+  return ButtonEvent::None;
+}
+
+void drawMeasurementFooter() {
+  display.setTextSize(1);
+  display.setCursor(0, 55);
+  display.print(viewModeLabel());
+  display.setCursor(43, 55);
+  display.print(F("Lang: zurueck"));
 }
 
 void drawMenu() {
@@ -113,34 +168,38 @@ void drawCalibration() {
   display.setTextColor(SSD1306_WHITE);
   display.setTextSize(1);
   display.setCursor(0, 0);
-  display.println(F("KALIBRIERUNG (nur)"));
+  display.println(F("KALIBRIERUNG"));
   display.drawLine(0, 10, 127, 10, SSD1306_WHITE);
 
-  // Reine Anzeige: Hier werden weder RAM-, EEPROM- noch Konfigurationswerte
-  // veraendert. Der ACS-Nullpunkt ist der zur Laufzeit verwendete Wert.
-  display.setCursor(0, 13);
-  display.print(F("ADC-Ref: "));
-  display.print(ADC_REFERENCE_VOLTAGE, 3);
-  display.println(F(" V"));
-  display.print(F("Teiler "));
-  display.print(DIVIDER_R1_OHM / 1000.0f, 1);
-  display.print(F("k/"));
-  display.print(DIVIDER_R2_OHM / 1000.0f, 1);
-  display.println(F("k"));
-  display.print(F("R-Ref: "));
-  display.print(RESISTANCE_REFERENCE_OHM / 1000.0f, 2);
-  display.println(F(" kOhm"));
-  display.print(F("ACS Null: "));
-  display.print(getCurrentZeroVoltage(), 3);
-  display.println(F(" V"));
-  display.print(F("ACS Sens: "));
-  display.print(CURRENT_SENSITIVITY_V_PER_A, 3);
-  display.println(F(" V/A"));
+  display.setCursor(0, 15);
+  if (calibrationItem == 0) display.println(F("ADC-Referenz"));
+  else if (calibrationItem == 1) display.println(F("Spannung Faktor"));
+  else if (calibrationItem == 2) display.println(F("Widerst. Faktor"));
+  else if (calibrationItem == 3) display.println(F("Strom Nullpunkt"));
+  else if (calibrationItem == 4) display.println(F("Strom Faktor"));
+  else if (calibrationItem == 5) display.println(F("Kap. fein Faktor"));
+  else if (calibrationItem == 6) display.println(F("Kap. grob Faktor"));
+  else display.println(F("Werkwerte laden"));
+
+  if (calibrationItem < 7) {
+    display.setTextSize(2);
+    display.setCursor(8, 29);
+    display.print(calibrationValue(static_cast<CalibrationField>(calibrationItem)), 3);
+    if (calibrationItem == 0 || calibrationItem == 3) display.print(F(" V"));
+  } else {
+    display.setCursor(8, 30);
+    display.print(F("Druecken"));
+  }
+  display.setTextSize(1);
+  display.setCursor(0, 55);
+  display.print(calibrationEditing ? F("Drehen, Klick speich.")
+                                   : F("Klick:aendern Lang:zur"));
   display.display();
 }
 
 void drawVoltmeter() {
-  const float voltage = readInputVoltage();
+  updateHistory(readInputVoltage());
+  const float voltage = displayedValue();
 
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
@@ -149,7 +208,7 @@ void drawVoltmeter() {
   display.println(F("VOLTMETER DC"));
   display.drawLine(0, 10, 127, 10, SSD1306_WHITE);
 
-  if (voltage >= OVERVOLTAGE_WARNING_THRESHOLD) {
+  if (activeHistory().live >= OVERVOLTAGE_WARNING_THRESHOLD) {
     display.setTextSize(2);
     display.setCursor(4, 17);
     display.println(F("WARNUNG!"));
@@ -163,14 +222,15 @@ void drawVoltmeter() {
     display.println(F(" V"));
   }
 
-  display.setTextSize(1);
-  display.setCursor(0, 55);
-  display.println(F("Druecken: zurueck"));
+  drawMeasurementFooter();
   display.display();
 }
 
 void drawResistance() {
-  const ResistanceMeasurement measurement = readResistance();
+  static ResistanceMeasurement measurement = {0.0f, 0.0f, ResistanceStatus::Open};
+  measurement = readResistance();
+  if (measurement.status == ResistanceStatus::Valid) updateHistory(measurement.ohms);
+  const float shownOhms = activeHistory().valid ? displayedValue() : measurement.ohms;
 
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
@@ -187,21 +247,19 @@ void drawResistance() {
     display.println(F("< 100 Ohm"));
   } else if (measurement.status == ResistanceStatus::AboveRange) {
     display.println(F("> 1 MOhm"));
-  } else if (measurement.ohms >= 1000000.0f) {
-    display.print(measurement.ohms / 1000000.0f, 2);
+  } else if (shownOhms >= 1000000.0f) {
+    display.print(shownOhms / 1000000.0f, 2);
     display.println(F(" MOhm"));
-  } else if (measurement.ohms >= 1000.0f) {
-    const uint8_t decimals = measurement.ohms < 10000.0f ? 2 : 1;
-    display.print(measurement.ohms / 1000.0f, decimals);
+  } else if (shownOhms >= 1000.0f) {
+    const uint8_t decimals = shownOhms < 10000.0f ? 2 : 1;
+    display.print(shownOhms / 1000.0f, decimals);
     display.println(F(" kOhm"));
   } else {
-    display.print(measurement.ohms, 0);
+    display.print(shownOhms, 0);
     display.println(F(" Ohm"));
   }
 
-  display.setTextSize(1);
-  display.setCursor(0, 55);
-  display.println(F("Druecken: zurueck"));
+  drawMeasurementFooter();
   display.display();
 }
 
@@ -234,26 +292,32 @@ void drawCapacitance() {
     display.setTextSize(2);
     display.println(F("> 4700 uF"));
   } else if (measurement.status == CapacitanceStatus::Valid) {
+    updateHistory(measurement.farads);
+    const float shownFarads = displayedValue();
     display.setTextSize(2);
-    if (measurement.farads >= 1.0e-3f) {
-      display.print(measurement.farads * 1.0e3f, 2);
+    if (fabs(shownFarads) >= 1.0e-3f) {
+      display.print(shownFarads * 1.0e3f, 2);
       display.println(F(" mF"));
-    } else if (measurement.farads >= 1.0e-6f) {
-      display.print(measurement.farads * 1.0e6f, 2);
+    } else if (fabs(shownFarads) >= 1.0e-6f) {
+      display.print(shownFarads * 1.0e6f, 2);
       display.println(F(" uF"));
     } else {
-      display.print(measurement.farads * 1.0e9f, 0);
+      display.print(shownFarads * 1.0e9f, 0);
       display.println(F(" nF"));
     }
   }
-  display.setTextSize(1);
-  display.setCursor(0, 55);
-  display.println(F("Druecken: zurueck"));
+  drawMeasurementFooter();
   display.display();
 }
 
 void drawCurrent() {
-  const CurrentMeasurement measurement = readCurrent();
+  static CurrentMeasurement measurement = {0.0f, 0.0f, CurrentStatus::Valid};
+  measurement = readCurrent();
+  if (measurement.status != CurrentStatus::AdcError &&
+      measurement.status != CurrentStatus::OutOfRange)
+    updateHistory(measurement.amperes);
+  const float shownAmperes = activeHistory().valid
+                                 ? displayedValue() : measurement.amperes;
 
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
@@ -286,12 +350,12 @@ void drawCurrent() {
   } else {
     display.setTextSize(2);
     display.setCursor(5, 17);
-    if (measurement.amperes >= 0.0f) display.print('+');
-    display.print(measurement.amperes, 1);
+    if (shownAmperes >= 0.0f) display.print('+');
+    display.print(shownAmperes, 1);
     display.println(F(" A"));
     display.setTextSize(1);
     display.setCursor(0, 39);
-    display.println(measurement.amperes >= 0.0f
+    display.println(shownAmperes >= 0.0f
                         ? F("Richtung: IP+ -> IP-")
                         : F("Richtung: IP- -> IP+"));
     if (measurement.status == CurrentStatus::HighLoad) {
@@ -300,14 +364,16 @@ void drawCurrent() {
     }
   }
 
-  display.setTextSize(1);
-  display.setCursor(0, 56);
-  display.println(F("Druecken: zurueck"));
+  drawMeasurementFooter();
   display.display();
 }
 
 void drawFrequency() {
-  const FrequencyMeasurement measurement = readFrequency();
+  static FrequencyMeasurement measurement = {0.0f, FrequencyStatus::NoSignal, false};
+  measurement = readFrequency();
+  if (measurement.status == FrequencyStatus::Valid) updateHistory(measurement.hertz);
+  const float shownHertz = activeHistory().valid
+                               ? displayedValue() : measurement.hertz;
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
   display.setTextSize(1);
@@ -323,22 +389,52 @@ void drawFrequency() {
   } else if (measurement.status == FrequencyStatus::AboveRange) {
     display.println(measurement.extendedRange ? F("> 1.6 MHz")
                                               : F("> 100 kHz"));
-  } else if (measurement.hertz >= 1000000.0f) {
-    display.print(measurement.hertz / 1000000.0f, 3);
+  } else if (fabs(shownHertz) >= 1000000.0f) {
+    display.print(shownHertz / 1000000.0f, 3);
     display.println(F(" MHz"));
-  } else if (measurement.hertz >= 1000.0f) {
-    display.print(measurement.hertz / 1000.0f,
-                  measurement.hertz < 10000.0f ? 3 : 2);
+  } else if (fabs(shownHertz) >= 1000.0f) {
+    display.print(shownHertz / 1000.0f,
+                  fabs(shownHertz) < 10000.0f ? 3 : 2);
     display.println(F(" kHz"));
   } else {
-    display.print(measurement.hertz, measurement.hertz < 10.0f ? 2 : 1);
+    display.print(shownHertz, fabs(shownHertz) < 10.0f ? 2 : 1);
     display.println(F(" Hz"));
   }
-  display.setTextSize(1);
-  display.setCursor(0, 55);
-  display.print(measurement.extendedRange ? F("x16  ") : F("x1   "));
-  display.println(F("Druecken: zurueck"));
+  drawMeasurementFooter();
   display.display();
+}
+
+void handleDetent(int8_t direction) {
+  if (!detailScreen) {
+    selectedItem = (selectedItem + direction + MENU_COUNT) % MENU_COUNT;
+    return;
+  }
+  if (selectedItem == 5) {
+    if (!calibrationEditing) {
+      calibrationItem = (calibrationItem + direction + 8) % 8;
+    } else if (calibrationItem < 7) {
+      const CalibrationField field = static_cast<CalibrationField>(calibrationItem);
+      setCalibrationValue(field, calibrationValue(field) + direction * 0.001f);
+    }
+    return;
+  }
+  int8_t mode = static_cast<int8_t>(viewMode) + direction;
+  if (mode < 0) mode = 3;
+  if (mode > 3) mode = 0;
+  viewMode = static_cast<ViewMode>(mode);
+  if (viewMode == ViewMode::Relative && activeHistory().valid)
+    activeHistory().relativeBase = activeHistory().live;
+}
+
+void leaveDetailScreen() {
+  if (selectedItem == 1) stopCapacitanceMeasurement();
+  if (selectedItem == 4) stopFrequencyMeasurement();
+  if (selectedItem == 5 && calibrationEditing) {
+    saveCalibration();
+    calibrationEditing = false;
+  }
+  detailScreen = false;
+  measurementHeld = false;
 }
 
 void setup() {
@@ -347,6 +443,7 @@ void setup() {
   pinMode(ENCODER_BUTTON_PIN, INPUT_PULLUP);
   pinMode(VOLTAGE_INPUT_PIN, INPUT);
   pinMode(RESISTANCE_INPUT_PIN, INPUT);
+  beginCalibration();
   beginCapacitanceMeter();
   beginCurrentMeter();
   beginFrequencyMeter();
@@ -389,29 +486,39 @@ void loop() {
   // Die meisten KY-040-Encoder liefern vier Zustandswechsel pro Rastung.
   while (accumulatedSteps >= 4) {
     accumulatedSteps -= 4;
-    if (!detailScreen) {
-      selectedItem = (selectedItem + 1) % MENU_COUNT;
-      redraw = true;
-    }
+    handleDetent(1);
+    redraw = true;
   }
   while (accumulatedSteps <= -4) {
     accumulatedSteps += 4;
-    if (!detailScreen) {
-      selectedItem = (selectedItem - 1 + MENU_COUNT) % MENU_COUNT;
-      redraw = true;
-    }
+    handleDetent(-1);
+    redraw = true;
   }
 
-  if (buttonWasPressed()) {
-    detailScreen = !detailScreen;
-    if (selectedItem == 1) {
-      if (detailScreen) startCapacitanceMeasurement();
-      else stopCapacitanceMeasurement();
+  const ButtonEvent buttonEvent = readButtonEvent();
+  if (buttonEvent == ButtonEvent::ShortPress) {
+    if (!detailScreen) {
+      detailScreen = true;
+      viewMode = ViewMode::Live;
+      measurementHeld = false;
+      if (selectedItem < 5) measurementHistory = ValueHistory();
+      if (selectedItem == 1) startCapacitanceMeasurement();
+      if (selectedItem == 4) startFrequencyMeasurement();
+    } else if (selectedItem == 5) {
+      if (calibrationItem == 7) {
+        resetCalibration();
+      } else {
+        calibrationEditing = !calibrationEditing;
+        if (!calibrationEditing) saveCalibration();
+      }
+    } else {
+      if (!measurementHeld && activeHistory().valid)
+        activeHistory().held = displayedValue();
+      measurementHeld = !measurementHeld;
     }
-    if (selectedItem == 4) {
-      if (detailScreen) startFrequencyMeasurement();
-      else stopFrequencyMeasurement();
-    }
+    redraw = true;
+  } else if (buttonEvent == ButtonEvent::LongPress && detailScreen) {
+    leaveDetailScreen();
     redraw = true;
   }
 
