@@ -27,5 +27,7 @@
   <path d="M320 400 H420" class="wire signal"/><path d="M320 440 H365 V375 H420" class="wire signal"/>
   <path d="M320 475 H385 V425 H420" class="wire signal"/>
   <path d="M690 325 H735 V390 H785" class="wire signal"/><path d="M690 375 H755 V430 H785" class="wire signal"/>
+  <text x="555" y="500" text-anchor="middle" class="small">Messmodule: A0 Spannung, A1 Widerstand, A2 Kapazität, A3 Strom</text>
+  <text x="555" y="525" text-anchor="middle" class="small">Kapazität: D5 fein, D6 grob, D7 kontrollierte Entladung; Frequenz: D8 / ICP1</text>
   <text x="550" y="610" text-anchor="middle" class="label">Alle GND-Anschlüsse verbinden. OLED-Versorgung laut Modulbeschriftung prüfen.</text>
 </svg>

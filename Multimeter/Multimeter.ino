@@ -3,7 +3,9 @@
 #include <Adafruit_SSD1306.h>
 
 #include "config.h"
+#include "capacitance.h"
 #include "current_meter.h"
+#include "frequency_meter.h"
 #include "resistance.h"
 #include "voltmeter.h"
 
@@ -12,15 +14,18 @@ Adafruit_SSD1306 display(OLED_WIDTH, OLED_HEIGHT, &Wire, OLED_RESET);
 volatile int16_t encoderDelta = 0;
 volatile uint8_t previousEncoderState = 0;
 
-const char *const menuItems[] = {
-  "Voltmeter",
-  "Kapazitaet",
-  "Widerstand",
-  "Strom",
-  "Frequenz",
-  "Einstellungen"
-};
-constexpr uint8_t MENU_COUNT = sizeof(menuItems) / sizeof(menuItems[0]);
+constexpr uint8_t MENU_COUNT = 6;
+
+const __FlashStringHelper *menuItemLabel(uint8_t item) {
+  switch (item) {
+    case 0: return F("Voltmeter");
+    case 1: return F("Kapazitaet");
+    case 2: return F("Widerstand");
+    case 3: return F("Strom");
+    case 4: return F("Frequenz");
+    default: return F("Einstellungen");
+  }
+}
 
 int8_t selectedItem = 0;
 bool detailScreen = false;
@@ -83,7 +88,7 @@ void drawMenu() {
       display.setTextColor(SSD1306_WHITE);
     }
     display.setCursor(3, y);
-    display.print(menuItems[item]);
+    display.print(menuItemLabel(item));
   }
   display.display();
 }
@@ -93,13 +98,44 @@ void drawDetail() {
   display.setTextColor(SSD1306_WHITE);
   display.setTextSize(1);
   display.setCursor(0, 0);
-  display.println(menuItems[selectedItem]);
+  display.println(menuItemLabel(selectedItem));
   display.drawLine(0, 10, 127, 10, SSD1306_WHITE);
   display.setCursor(0, 20);
   display.println(F("Messmodul noch nicht"));
   display.println(F("angeschlossen."));
   display.setCursor(0, 52);
   display.println(F("Druecken: zurueck"));
+  display.display();
+}
+
+void drawCalibration() {
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println(F("KALIBRIERUNG (nur)"));
+  display.drawLine(0, 10, 127, 10, SSD1306_WHITE);
+
+  // Reine Anzeige: Hier werden weder RAM-, EEPROM- noch Konfigurationswerte
+  // veraendert. Der ACS-Nullpunkt ist der zur Laufzeit verwendete Wert.
+  display.setCursor(0, 13);
+  display.print(F("ADC-Ref: "));
+  display.print(ADC_REFERENCE_VOLTAGE, 3);
+  display.println(F(" V"));
+  display.print(F("Teiler "));
+  display.print(DIVIDER_R1_OHM / 1000.0f, 1);
+  display.print(F("k/"));
+  display.print(DIVIDER_R2_OHM / 1000.0f, 1);
+  display.println(F("k"));
+  display.print(F("R-Ref: "));
+  display.print(RESISTANCE_REFERENCE_OHM / 1000.0f, 2);
+  display.println(F(" kOhm"));
+  display.print(F("ACS Null: "));
+  display.print(getCurrentZeroVoltage(), 3);
+  display.println(F(" V"));
+  display.print(F("ACS Sens: "));
+  display.print(CURRENT_SENSITIVITY_V_PER_A, 3);
+  display.println(F(" V/A"));
   display.display();
 }
 
@@ -169,6 +205,53 @@ void drawResistance() {
   display.display();
 }
 
+void drawCapacitance() {
+  const CapacitanceMeasurement measurement = getCapacitanceMeasurement();
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println(F("KAPAZITAET"));
+  display.drawLine(0, 10, 127, 10, SSD1306_WHITE);
+
+  display.setCursor(0, 17);
+  if (measurement.status == CapacitanceStatus::DischargingCharged) {
+    display.println(F("Geladen erkannt"));
+    display.println(F("Entlade sicher..."));
+  } else if (measurement.status == CapacitanceStatus::Discharging) {
+    display.println(F("Entlade..."));
+  } else if (measurement.status == CapacitanceStatus::Measuring) {
+    display.println(F("Messe RC-Zeit..."));
+  } else if (measurement.status == CapacitanceStatus::DischargeFailed) {
+    display.setTextSize(2);
+    display.println(F("ABBRUCH"));
+    display.setTextSize(1);
+    display.println(F("Entladen fehlgeschl."));
+  } else if (measurement.status == CapacitanceStatus::BelowRange) {
+    display.setTextSize(2);
+    display.println(F("< 100 nF"));
+  } else if (measurement.status == CapacitanceStatus::AboveRange) {
+    display.setTextSize(2);
+    display.println(F("> 4700 uF"));
+  } else if (measurement.status == CapacitanceStatus::Valid) {
+    display.setTextSize(2);
+    if (measurement.farads >= 1.0e-3f) {
+      display.print(measurement.farads * 1.0e3f, 2);
+      display.println(F(" mF"));
+    } else if (measurement.farads >= 1.0e-6f) {
+      display.print(measurement.farads * 1.0e6f, 2);
+      display.println(F(" uF"));
+    } else {
+      display.print(measurement.farads * 1.0e9f, 0);
+      display.println(F(" nF"));
+    }
+  }
+  display.setTextSize(1);
+  display.setCursor(0, 55);
+  display.println(F("Druecken: zurueck"));
+  display.display();
+}
+
 void drawCurrent() {
   const CurrentMeasurement measurement = readCurrent();
 
@@ -223,13 +306,50 @@ void drawCurrent() {
   display.display();
 }
 
+void drawFrequency() {
+  const FrequencyMeasurement measurement = readFrequency();
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println(F("FREQUENZ"));
+  display.drawLine(0, 10, 127, 10, SSD1306_WHITE);
+  display.setTextSize(2);
+  display.setCursor(3, 21);
+  if (measurement.status == FrequencyStatus::NoSignal) {
+    display.println(F("KEIN PULS"));
+  } else if (measurement.status == FrequencyStatus::BelowRange) {
+    display.println(measurement.extendedRange ? F("< 16 Hz") : F("< 1 Hz"));
+  } else if (measurement.status == FrequencyStatus::AboveRange) {
+    display.println(measurement.extendedRange ? F("> 1.6 MHz")
+                                              : F("> 100 kHz"));
+  } else if (measurement.hertz >= 1000000.0f) {
+    display.print(measurement.hertz / 1000000.0f, 3);
+    display.println(F(" MHz"));
+  } else if (measurement.hertz >= 1000.0f) {
+    display.print(measurement.hertz / 1000.0f,
+                  measurement.hertz < 10000.0f ? 3 : 2);
+    display.println(F(" kHz"));
+  } else {
+    display.print(measurement.hertz, measurement.hertz < 10.0f ? 2 : 1);
+    display.println(F(" Hz"));
+  }
+  display.setTextSize(1);
+  display.setCursor(0, 55);
+  display.print(measurement.extendedRange ? F("x16  ") : F("x1   "));
+  display.println(F("Druecken: zurueck"));
+  display.display();
+}
+
 void setup() {
   pinMode(ENCODER_A_PIN, INPUT_PULLUP);
   pinMode(ENCODER_B_PIN, INPUT_PULLUP);
   pinMode(ENCODER_BUTTON_PIN, INPUT_PULLUP);
   pinMode(VOLTAGE_INPUT_PIN, INPUT);
   pinMode(RESISTANCE_INPUT_PIN, INPUT);
+  beginCapacitanceMeter();
   beginCurrentMeter();
+  beginFrequencyMeter();
 
   previousEncoderState =
       (digitalRead(ENCODER_A_PIN) << 1) | digitalRead(ENCODER_B_PIN);
@@ -257,6 +377,7 @@ void loop() {
   static uint32_t lastVoltageUpdateMs = 0;
   static uint32_t lastResistanceUpdateMs = 0;
   static uint32_t lastCurrentUpdateMs = 0;
+  static uint32_t lastFrequencyUpdateMs = 0;
   bool redraw = false;
 
   noInterrupts();
@@ -283,7 +404,30 @@ void loop() {
 
   if (buttonWasPressed()) {
     detailScreen = !detailScreen;
+    if (selectedItem == 1) {
+      if (detailScreen) startCapacitanceMeasurement();
+      else stopCapacitanceMeasurement();
+    }
+    if (selectedItem == 4) {
+      if (detailScreen) startFrequencyMeasurement();
+      else stopFrequencyMeasurement();
+    }
     redraw = true;
+  }
+
+  if (detailScreen && selectedItem == 1) {
+    const CapacitanceStatus previousStatus =
+        getCapacitanceMeasurement().status;
+    updateCapacitanceMeasurement();
+    const CapacitanceStatus currentStatus =
+        getCapacitanceMeasurement().status;
+    // Waehrend der RC-Ladung keine langsame OLED-Uebertragung starten. So
+    // bleibt auch die 100-nF-Untergrenze zeitlich messbar.
+    if (currentStatus != previousStatus &&
+        currentStatus != CapacitanceStatus::Measuring &&
+        currentStatus != CapacitanceStatus::Discharging) {
+      redraw = true;
+    }
   }
 
   if (detailScreen && selectedItem == 0 &&
@@ -304,6 +448,12 @@ void loop() {
     redraw = true;
   }
 
+  if (detailScreen && selectedItem == 4 &&
+      (millis() - lastFrequencyUpdateMs >= FREQUENCY_UPDATE_MS)) {
+    lastFrequencyUpdateMs = millis();
+    redraw = true;
+  }
+
   if (redraw) {
     if (!detailScreen) {
       drawMenu();
@@ -311,8 +461,14 @@ void loop() {
       drawVoltmeter();
     } else if (selectedItem == 2) {
       drawResistance();
+    } else if (selectedItem == 1) {
+      drawCapacitance();
     } else if (selectedItem == 3) {
       drawCurrent();
+    } else if (selectedItem == 4) {
+      drawFrequency();
+    } else if (selectedItem == 5) {
+      drawCalibration();
     } else {
       drawDetail();
     }

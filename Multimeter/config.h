@@ -17,6 +17,28 @@ constexpr uint16_t BUTTON_DEBOUNCE_MS = 30;
 constexpr uint8_t VOLTAGE_INPUT_PIN = A0;
 constexpr uint8_t RESISTANCE_INPUT_PIN = A1;
 
+// Kapazitaetsmessung: CX+ -- 1 kOhm Schutz -- Messknoten/A2.
+// D5 laedt ueber 100 kOhm, D6 ueber 1 kOhm; D7 entlaedt den Messknoten.
+// Alle Widerstandswerte durch ihre gemessenen 1-%-Werte ersetzen.
+constexpr uint8_t CAPACITANCE_INPUT_PIN = A2;
+constexpr uint8_t CAPACITANCE_CHARGE_FINE_PIN = 5;
+constexpr uint8_t CAPACITANCE_CHARGE_COARSE_PIN = 6;
+constexpr uint8_t CAPACITANCE_DISCHARGE_PIN = 7;
+constexpr float CAPACITANCE_PROTECTION_OHM = 1000.0f;
+constexpr float CAPACITANCE_FINE_REFERENCE_OHM = 100000.0f;
+constexpr float CAPACITANCE_COARSE_REFERENCE_OHM = 1000.0f;
+constexpr float CAPACITANCE_FINE_CORRECTION_FACTOR = 1.000f;
+constexpr float CAPACITANCE_COARSE_CORRECTION_FACTOR = 1.000f;
+constexpr float CAPACITANCE_MIN_F = 100.0e-9f;
+constexpr float CAPACITANCE_MAX_F = 4700.0e-6f;
+constexpr uint16_t CAPACITANCE_CHARGED_ADC_THRESHOLD = 20;
+constexpr uint16_t CAPACITANCE_DISCHARGED_ADC_THRESHOLD = 5;
+constexpr uint16_t CAPACITANCE_TARGET_ADC = 647; // ca. 63,2 % von 1023
+constexpr uint32_t CAPACITANCE_FINE_TIMEOUT_US = 1200000UL;
+constexpr uint32_t CAPACITANCE_COARSE_TIMEOUT_US = 12000000UL;
+constexpr uint32_t CAPACITANCE_DISCHARGE_TIMEOUT_MS = 30000UL;
+constexpr uint16_t CAPACITANCE_DISCHARGE_STABLE_MS = 50;
+
 // Voltmeter: R1 von VIN+ zum Teilerknoten, R2 vom Teilerknoten nach GND.
 // Die Widerstandswerte koennen durch gemessene Werte ersetzt werden.
 // ADC_REFERENCE_VOLTAGE mit einem Multimeter an 5V kalibrieren.
@@ -65,3 +87,19 @@ constexpr float CURRENT_WARNING_CLEAR_A = 19.0f;
 // und deuten auf Unterbrechung, Kurzschluss oder falsche Verdrahtung hin.
 constexpr uint16_t CURRENT_PLAUSIBLE_ADC_MIN = 5;
 constexpr uint16_t CURRENT_PLAUSIBLE_ADC_MAX = 1018;
+
+// Frequenzmessung: 0...5-V-Rechtecksignal ueber 74HC14 an D8/ICP1.
+// Gueltig sind LOW <= 1,0 V und HIGH >= 4,0 V. Timer 1 laeuft ohne
+// Vorteiler; D9/D10-PWM steht waehrend der Frequenzmessung nicht zur Verfuegung.
+constexpr uint8_t FREQUENCY_INPUT_PIN = 8;
+// Optionaler 74HC4040-Vorteiler: Ein DPDT-Schalter legt D12 im Bereich x16
+// an GND und fuehrt zugleich Q4 (/16) statt des Direktsignals auf D8.
+// Ohne Erweiterungsplatine bleibt D12 durch INPUT_PULLUP HIGH.
+constexpr uint8_t FREQUENCY_EXTENDED_RANGE_PIN = 12;
+constexpr uint8_t FREQUENCY_EXTENDED_DIVISOR = 16;
+constexpr float FREQUENCY_MIN_HZ = 1.0f;
+constexpr float FREQUENCY_MAX_HZ = 100000.0f;
+constexpr float FREQUENCY_EXTENDED_MIN_HZ = 16.0f;
+constexpr float FREQUENCY_EXTENDED_MAX_HZ = 1600000.0f;
+constexpr uint32_t FREQUENCY_NO_SIGNAL_TIMEOUT_MS = 1500UL;
+constexpr uint16_t FREQUENCY_UPDATE_MS = 200;

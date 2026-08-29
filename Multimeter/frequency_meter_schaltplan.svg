@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <style>
+    text{font-family:Arial,sans-serif;fill:#17202a}.title{font-size:28px;font-weight:bold}.label{font-size:18px}.small{font-size:15px}.part{font-size:17px;font-weight:bold}.wire{fill:none;stroke:#2471a3;stroke-width:4}.power{stroke:#c0392b}.ground{stroke:#17202a}.box{fill:#f8f9f9;stroke:#34495e;stroke-width:3}.node{fill:#2471a3}
+  </style>
+  <rect width="1200" height="700" fill="#fff"/>
+  <text x="600" y="42" text-anchor="middle" class="title">Geschuetzter Frequenzeingang – Arduino Nano D8 / ICP1</text>
+  <text x="600" y="72" text-anchor="middle" class="label">Zulaessig: 0…5 V, LOW ≤ 1,0 V, HIGH ≥ 4,0 V, 1 Hz…100 kHz</text>
+  <rect x="45" y="250" width="150" height="145" rx="12" class="box"/>
+  <text x="120" y="290" text-anchor="middle" class="part">BNC F_IN</text><text x="120" y="330" text-anchor="middle" class="label">Mitte</text><text x="120" y="375" text-anchor="middle" class="label">Schirm / GND</text>
+  <path d="M195 325 H290" class="wire"/><rect x="290" y="305" width="150" height="40" class="box"/><text x="365" y="331" text-anchor="middle" class="part">R_F 10 kΩ</text>
+  <path d="M440 325 H570" class="wire"/><circle cx="520" cy="325" r="7" class="node"/><text x="520" y="300" text-anchor="middle" class="small">F_PROTECT</text>
+  <path d="M520 325 V430" class="wire"/><rect x="480" y="430" width="80" height="80" class="box"/><text x="520" y="462" text-anchor="middle" class="part">R_PD</text><text x="520" y="490" text-anchor="middle" class="label">100 kΩ</text><path d="M520 510 V565" class="wire ground"/>
+  <path d="M450 325 V205" class="wire"/><text x="420" y="235" text-anchor="end" class="part">D_HIGH BAT43</text><path d="M425 205 H475" class="wire power"/><path d="M450 205 V145" class="wire power"/><text x="450" y="130" text-anchor="middle" class="part">+5 V</text>
+  <path d="M590 325 V455" class="wire"/><text x="615" y="420" class="part">D_LOW BAT43</text><path d="M565 455 H615" class="wire ground"/><path d="M590 455 V565" class="wire ground"/>
+  <rect x="650" y="205" width="250" height="235" rx="14" class="box"/><text x="775" y="245" text-anchor="middle" class="title">74HC14</text><text x="675" y="315" class="part">1A / Pin 1</text><text x="875" y="315" text-anchor="end" class="part">1Y / Pin 2</text><path d="M570 325 H650" class="wire"/>
+  <path d="M900 325 H1015" class="wire"/><rect x="1015" y="260" width="145" height="130" rx="12" class="box"/><text x="1087" y="305" text-anchor="middle" class="part">Arduino Nano</text><text x="1087" y="345" text-anchor="middle" class="part">D8 / ICP1</text>
+  <path d="M725 205 V145" class="wire power"/><text x="725" y="130" text-anchor="middle" class="part">Pin 14 / +5 V</text><path d="M825 440 V565" class="wire ground"/><text x="840" y="475" class="small">Pin 7</text>
+  <rect x="760" y="115" width="90" height="45" class="box"/><text x="805" y="143" text-anchor="middle" class="part">100 nF</text><path d="M760 137 H725" class="wire power"/><path d="M850 137 H930 V565" class="wire ground"/>
+  <path d="M195 370 H240 V565 H1020" class="wire ground"/><path d="M210 565 h60 m-45 15 h30 m-20 15 h10" class="wire ground"/>
+  <text x="600" y="635" text-anchor="middle" class="label">BAT43-Orientierung: D_HIGH Anode am Knoten/Kathode +5 V; D_LOW Anode GND/Kathode am Knoten.</text>
+  <text x="600" y="665" text-anchor="middle" class="small">Unbenutzte 74HC14-Eingaenge an GND; unbenutzte Ausgaenge offen. 100 nF direkt an Pins 14 und 7.</text>
+</svg>

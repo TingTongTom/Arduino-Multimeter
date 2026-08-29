@@ -1,9 +1,9 @@
 # Bauteilliste fuer das gesamte Multimeter-Projekt
 
 Stand: Grundgeraet, Voltmeter und Widerstandsmessung sind geplant beziehungsweise
-teilweise umgesetzt. Ein AZ-Delivery ACS712-20A ist bereits vorhanden.
-Kapazitaets- und Frequenzmessung sind geplante Erweiterungen; ihre Teileliste
-ist bis zum endgueltigen Schaltungsentwurf vorlaeufig.
+teilweise umgesetzt. Ein AZ-Delivery ACS712-20A ist bereits vorhanden. Die
+Kapazitaetsmessung ist fuer 100 nF bis 4700 uF ausgelegt; die Frequenzmessung
+ist fuer 0 bis 5 V und 1 Hz bis 100 kHz umgesetzt.
 
 ## Vorhandenes Bauteil
 
@@ -19,17 +19,14 @@ ist bis zum endgueltigen Schaltungsentwurf vorlaeufig.
 | 1 | OLED-Display | 128 x 64, I2C, SSD1306, meist 0x3C | Grundgeraet |
 | 1 | Drehencoder mit Taster | KY-040 oder mechanischer Encoder | Grundgeraet |
 | 1 | Widerstand | 56 kOhm, 1 %, mindestens 0,25 W | Voltmeter |
-| 4 | Widerstand | 10 kOhm, 1 %, mindestens 0,25 W | Spannung, Widerstand, Kapazitaet, Frequenz |
+| 3 | Widerstand | 10 kOhm, 1 %, mindestens 0,25 W | Spannung, Widerstand und Frequenz |
 | 4 | Widerstand | 1 kOhm, 1 %, mindestens 0,25 W | A0, A1, A3 und Kapazitaetseingang |
 | 2 | Widerstand | 100 kOhm, 1 %, mindestens 0,25 W | Kapazitaet und Frequenz |
-| 1 | Widerstand | 1 MOhm, 1 %, mindestens 0,25 W | Kapazitaetsmessbereich |
 | 6 | Kleinsignal-Schottkydiode | BAT43, bedrahtet, DO-35 | Je zwei fuer Spannung, Kapazitaet und Frequenz |
 | 6 | Keramikkondensator | 100 nF, mindestens 25 V | Filter und Abblockung; einer davon optional an A1 |
 | 1 | Elektrolytkondensator, optional | 10 uF, mindestens 10 V | Stuetzung am ACS712-Modul |
 | 1 | Schmitt-Trigger-IC | 74HC14, DIP-14 | Frequenzeingang |
 | 1 | IC-Sockel, empfohlen | DIP-14 | 74HC14 austauschbar montieren |
-| 1 | MOSFET, vorlaeufig | 2N7000, TO-92 | Kontrollierte Kondensatorentladung |
-| 1 | Drehschalter, vorlaeufig | Mindestens 1-polig, 4 Stellungen | Kapazitaets-Messbereich |
 | 1 | Sicherungshalter | Fuer Kfz-Flachsicherung, mindestens 20 A | Strommesspfad |
 | 2 | Sicherungen | 20 A, eine davon als Ersatz | Strommesspfad; Softwarewarnung ersetzt sie nicht |
 | 2 | Hochstrombuchsen | Beruehrungsgeschuetzt, 4 mm, mindestens 20 A | Stromeingang und Stromausgang |
@@ -104,22 +101,21 @@ zum sofortigen Trennen auffordern. 20 A ist nur die kurze Messbereichsgrenze,
 nicht der vorgesehene Dauerbetrieb. Sicherung, Buchsen, Leitungen, Klemmen und
 Leiterbahnen muessen unabhaengig von der Software ausreichend belastbar sein.
 
-## Geplante Kapazitaetsmessung, vorlaeufig
+## Kapazitaetsmessung 100 nF bis 4700 uF
 
 | Anzahl | Bauteil | Wert / Typ |
 |---:|---|---|
-| je 1 | Referenzwiderstand | 1 kOhm, 10 kOhm, 100 kOhm und 1 MOhm, jeweils 1 % |
+| je 1 | Referenzwiderstand | 1 kOhm und 100 kOhm, jeweils 1 % |
+| 1 | Schutzwiderstand | 1 kOhm, 1 % |
 | 2 | Schutzdiode | BAT43 |
-| 1 | Abblockkondensator | 100 nF |
-| 1 | Entlade-MOSFET | 2N7000 oder nach endgueltigem Entwurf |
-| 1 | Bereichsschalter | Mindestens vier Stellungen oder elektronische Alternative |
 | 2 | Messbuchsen | CX+ und GND |
 
-Die endgueltigen Werte haengen vom noch festzulegenden Kapazitaetsmessbereich
-ab. Geladene Kondensatoren duerfen nicht direkt an den Nano angeschlossen
-werden.
+D5 und D6 waehlen die RC-Bereiche automatisch, D7 entlaedt kontrolliert. Der
+1-kOhm-Schutzwiderstand liegt zwischen CX+ und dem gemeinsamen Messknoten an
+A2. Zwei BAT43 klemmen diesen Knoten gegen GND und 5 V. Details und
+Sicherheitsgrenzen stehen in `capacitance_anschlussplan.md`.
 
-## Geplante Frequenzmessung, vorlaeufig
+## Frequenzmessung 1 Hz bis 100 kHz
 
 | Anzahl | Bauteil | Wert / Typ |
 |---:|---|---|
@@ -130,9 +126,24 @@ werden.
 | 1 | Abblockkondensator | 100 nF |
 | 1 | Eingangsbuchse | Isolierte BNC-Buchse |
 
-Der endgueltige Eingangsteiler und eine moegliche AC-Kopplung werden erst nach
-Festlegung des erlaubten Spannungs- und Frequenzbereichs bestimmt. D8/ICP1 ist
-als Nano-Frequenzeingang vorgesehen.
+Der 10-kOhm-Serienwiderstand liegt zwischen BNC-Mitte und Schutzknoten. Zwei
+BAT43 klemmen den Knoten nach GND und +5 V; 100 kOhm ziehen ihn bei offener
+Buchse definiert auf LOW. Der Knoten speist 74HC14 Pin 1, Pin 2 geht an D8/ICP1.
+Der 100-nF-Abblockkondensator gehoert direkt zwischen Pins 14 und 7. Details
+und die verbindlichen Pegelgrenzen stehen in `frequency_meter_anschlussplan.md`.
+
+### Optionale Frequenzbereichserweiterung bis 1,6 MHz
+
+| Anzahl | Bauteil | Wert / Typ |
+|---:|---|---|
+| 1 | Binaerer Teiler | 74HC4040, DIP-16 |
+| 1 | IC-Sockel | DIP-16, empfohlen |
+| 1 | Umschalter | DPDT, ON-ON |
+| 1 | Abblockkondensator | 100 nF, Keramik |
+
+Der Umschalter waehlt zwischen dem direkten Signal und Q4 des 74HC4040
+(Teilung durch 16). Sein zweiter Pol zieht D12 im erweiterten Bereich nach
+GND. Details stehen in `frequency_meter_anschlussplan.md`.
 
 ## Optionale Kalibrier- und Pruefteile
 
@@ -149,6 +160,7 @@ nicht Bestandteil des fertigen Geraets.
 - Nur fuer Kleinspannungs-DIY- und Mikrocontrollerprojekte verwenden.
 - Keine Netzspannung und keine CAT-Messungen durchfuehren.
 - Der Voltmeter-Eingang ist nur fuer positive Gleichspannung bis 25 V gedacht.
+- Der Frequenzeingang ist nur fuer massebezogene 0-bis-5-V-Signale gedacht.
 - Widerstaende und Kondensatoren nur spannungsfrei anschliessen; Kondensatoren
   vorher vollstaendig entladen.
 - Die Strommessung immer in Reihe und mit Sicherung aufbauen.

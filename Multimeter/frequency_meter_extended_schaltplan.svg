@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <style>
+    text{font-family:Arial,sans-serif;fill:#17202a}.title{font-size:28px;font-weight:bold}.label{font-size:18px}.small{font-size:15px}.part{font-size:17px;font-weight:bold}.wire{fill:none;stroke:#2471a3;stroke-width:4}.power{stroke:#c0392b}.ground{stroke:#17202a}.box{fill:#f8f9f9;stroke:#34495e;stroke-width:3}.node{fill:#2471a3}.switch{fill:none;stroke:#7d3c98;stroke-width:5}
+  </style>
+  <rect width="1200" height="700" fill="#fff"/>
+  <text x="600" y="44" text-anchor="middle" class="title">Optionale Frequenzbereichserweiterung x1 / x16</text>
+  <text x="600" y="76" text-anchor="middle" class="label">Direkt: 1 Hz…100 kHz · Vorteiler: 16 Hz…1,6 MHz · Eingang weiterhin nur 0…5 V</text>
+
+  <rect x="40" y="245" width="245" height="135" rx="12" class="box"/>
+  <text x="162" y="285" text-anchor="middle" class="part">vom 74HC14 Pin 2</text>
+  <text x="162" y="320" text-anchor="middle" class="label">aufbereitetes Signal</text>
+  <text x="162" y="352" text-anchor="middle" class="small">aus dem Grundplan</text>
+  <path d="M285 312 H350" class="wire"/><circle cx="330" cy="312" r="7" class="node"/>
+
+  <rect x="390" y="165" width="270" height="250" rx="14" class="box"/>
+  <text x="525" y="205" text-anchor="middle" class="title">74HC4040</text>
+  <text x="415" y="280" class="part">CLK Pin 10</text>
+  <text x="635" y="280" text-anchor="end" class="part">Q4 Pin 5</text>
+  <text x="525" y="330" text-anchor="middle" class="label">Teiler durch 16</text>
+  <path d="M330 312 V270 H390" class="wire"/>
+  <path d="M660 270 H740" class="wire"/>
+  <path d="M450 165 V120" class="wire power"/><text x="450" y="105" text-anchor="middle" class="part">Pin 16 / +5 V</text>
+  <path d="M580 415 V570" class="wire ground"/><text x="595" y="452" class="small">Pin 8 / GND</text>
+  <path d="M500 415 V570" class="wire ground"/><text x="485" y="490" text-anchor="end" class="small">RESET Pin 11</text>
+  <rect x="515" y="105" width="100" height="45" class="box"/><text x="565" y="133" text-anchor="middle" class="part">100 nF</text>
+  <path d="M515 127 H450" class="wire power"/><path d="M615 127 H690 V570" class="wire ground"/>
+
+  <text x="815" y="135" text-anchor="middle" class="part">DPDT Pol A: Signalwahl</text>
+  <circle cx="790" cy="245" r="7" class="node"/><circle cx="790" cy="320" r="7" class="node"/><circle cx="930" cy="282" r="7" class="node"/>
+  <path d="M330 312 V245 H790" class="wire"/>
+  <path d="M740 270 V320 H790" class="wire"/>
+  <path d="M930 282 H1080" class="wire"/>
+  <path d="M930 282 L805 247" class="switch"/>
+  <text x="755" y="235" text-anchor="end" class="label">x1</text><text x="755" y="350" text-anchor="end" class="label">x16</text>
+  <rect x="1080" y="225" width="90" height="115" rx="10" class="box"/><text x="1125" y="270" text-anchor="middle" class="part">Nano</text><text x="1125" y="305" text-anchor="middle" class="part">D8</text>
+
+  <text x="815" y="420" text-anchor="middle" class="part">DPDT Pol B: Bereichsmeldung</text>
+  <circle cx="790" cy="470" r="7" class="node"/><circle cx="790" cy="535" r="7" class="node"/><circle cx="930" cy="502" r="7" class="node"/>
+  <path d="M930 502 H1080" class="wire"/><path d="M930 502 L805 532" class="switch"/>
+  <text x="755" y="475" text-anchor="end" class="label">x1: offen</text>
+  <path d="M790 535 V570" class="wire ground"/><text x="755" y="555" text-anchor="end" class="label">x16: GND</text>
+  <rect x="1080" y="450" width="90" height="105" rx="10" class="box"/><text x="1125" y="490" text-anchor="middle" class="part">Nano</text><text x="1125" y="525" text-anchor="middle" class="part">D12</text>
+
+  <path d="M365 570 H1010" class="wire ground"/><path d="M660 570 h60 m-45 15 h30 m-20 15 h10" class="wire ground"/>
+  <text x="600" y="640" text-anchor="middle" class="label">Beide Schalterpole mechanisch gekoppelt; D12 verwendet den internen Pull-up.</text>
+  <text x="600" y="672" text-anchor="middle" class="small">Alle unbenutzten 74HC4040-Ausgaenge offen lassen. Versorgung mit kurzen Leitungen und 100 nF direkt am IC abblocken.</text>
+</svg>

@@ -29,6 +29,10 @@ void beginCurrentMeter() {
   }
 }
 
+float getCurrentZeroVoltage() {
+  return zeroVoltage;
+}
+
 CurrentMeasurement readCurrent() {
   const float averageAdc = readAverageAdc(CURRENT_SAMPLE_COUNT);
   if (averageAdc < CURRENT_PLAUSIBLE_ADC_MIN ||

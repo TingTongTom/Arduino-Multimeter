@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <style>
+    text{font-family:Arial,sans-serif;fill:#17202a}.title{font-size:30px;font-weight:bold}.label{font-size:18px}.small{font-size:15px}.box{fill:#f8f9f9;stroke:#34495e;stroke-width:3}.wire{fill:none;stroke:#2471a3;stroke-width:4}.part{fill:#fff;stroke:#34495e;stroke-width:3}.ground{stroke:#17202a;stroke-width:3}
+  </style>
+  <rect width="1200" height="700" fill="#fff"/>
+  <text x="600" y="42" text-anchor="middle" class="title">Kapazitaetsmessung 100 nF bis 4700 uF</text>
+  <rect x="55" y="110" width="230" height="470" rx="16" class="box"/>
+  <text x="170" y="150" text-anchor="middle" class="title">Arduino Nano</text>
+  <text x="245" y="220" text-anchor="end" class="label">D5 fein</text><text x="245" y="300" text-anchor="end" class="label">D6 grob</text>
+  <text x="245" y="380" text-anchor="end" class="label">D7 entladen</text><text x="245" y="460" text-anchor="end" class="label">A2 messen</text>
+  <text x="245" y="535" text-anchor="end" class="label">GND / +5 V</text>
+  <path d="M285 215 H340" class="wire"/><rect x="340" y="190" width="170" height="50" class="part"/><text x="425" y="221" text-anchor="middle" class="label">100 kOhm 1 %</text>
+  <path d="M285 295 H340" class="wire"/><rect x="340" y="270" width="170" height="50" class="part"/><text x="425" y="301" text-anchor="middle" class="label">1 kOhm 1 %</text>
+  <path d="M510 215 H600 V405 M510 295 H600 M285 375 H600 M285 455 H600" class="wire"/>
+  <circle cx="600" cy="405" r="7" fill="#2471a3"/><text x="620" y="392" class="label">Messknoten</text>
+  <rect x="720" y="380" width="170" height="50" class="part"/><text x="805" y="411" text-anchor="middle" class="label">1 kOhm 1 %</text>
+  <path d="M600 405 H720 M890 405 H1010" class="wire"/><circle cx="1010" cy="405" r="8" fill="#2471a3"/>
+  <text x="1040" y="395" class="title">CX+</text><text x="1040" y="435" class="small">Kondensator-Plus</text>
+  <path d="M600 405 V510" class="wire"/><path d="M565 510 H635 M575 525 H625 M588 540 H612" class="ground"/>
+  <text x="650" y="530" class="label">BAT43 nach GND</text>
+  <path d="M600 405 V300 H665" class="wire"/><text x="680" y="295" class="label">BAT43 nach +5 V</text>
+  <text x="680" y="320" class="small">Anode am Knoten, Kathode an +5 V</text>
+  <circle cx="1010" cy="545" r="8" fill="#17202a"/><text x="1040" y="552" class="title">CX- / GND</text>
+  <path d="M1010 545 H950" class="ground"/>
+  <text x="600" y="635" text-anchor="middle" class="label">R_PROTECT liegt zwischen CX+ und allen Nano-Pins; BAT43 nahe am Nano montieren.</text>
+  <text x="600" y="667" text-anchor="middle" class="small">Nur fuer spannungsfreie Kondensatoren aus Kleinspannungsschaltungen. Keine Netz- oder Hochenergie-Kondensatoren.</text>
+</svg>
